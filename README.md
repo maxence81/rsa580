@@ -12,13 +12,15 @@ RTX PRO 6000 96 Go / 24 vCPU / 85 Go RAM, `--network none`, `--read-only`,
 `/tmp` en tmpfs 10 Go.
 
 **Statut : non résolu. Le verdict « hors de portée » est ROUVERT (2026-11-02).**
-La chaîne GLAS 2LP est bien condamnée par la mesure (§6.2 : 23 244–23 942 s pour
-14 400 s). Mais le dossier avait été clos sur la prémisse « aucun cribleur GPU
-capable de 3LP n'est disponible » — **cette prémisse est fausse** : `cuda-sieve`
-est domaine public (CC0), gère la 3LP des deux côtés avec rho/ECM automatique,
-tourne sur sm_120, et **ses binaires sont dans le zip de la solution 530 bits**.
-Voir `SOLUTIONS_DIFF.md` §2. Le prochain jalon est une mesure de débit 3LP à
-c175, pas un chantier de plusieurs semaines.
+La chaîne GLAS 2LP — celle du 560, présente ici sous `rsa560_solver/` — est bien
+condamnée par la mesure (§6.2 : 23 244–23 942 s pour 14 400 s). Mais le dossier
+avait été clos sur la prémisse « aucun cribleur GPU capable de 3LP n'est
+disponible » — **cette prémisse est fausse** : `cuda-sieve` est domaine public
+(CC0), gère la 3LP des deux côtés avec rho/ECM automatique, tourne sur sm_120, et
+**ses binaires sont dans le zip de la solution 530 bits**. Voir `SOLUTIONS_DIFF.md`.
+Deux voies, désormais nommées : **A** rester sur GLAS 2LP (mesuré insuffisant),
+**B** passer en 3LP sur GPU (jamais mesuré à c175). Le prochain jalon est une
+mesure de débit 3LP, pas un chantier de plusieurs semaines.
 
 ---
 

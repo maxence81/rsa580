@@ -1001,7 +1001,9 @@ Le détail est dans **`SOLUTIONS_DIFF.md`**. Résumé de la chronologie :
   222 Ko et le coût de 17 à **5,0 ms/lattice**.
 - **530** : **`gpu_loop` est abandonné** au profit de `cuda-sieve`, un projet
   **public CC0**. Run complet en **14 368,7 s** — 31 s de marge.
-- **560 : absent du lot.**
+- **560** : chaîne entièrement différente — **Cognition GLAS + 15 patches**,
+  485 M de relations brutes, 14 774 s en blind GCP. C'est la chaîne que ce dépôt
+  utilise pour le 580 (voir §15.6).
 
 ### 15.2 Pourquoi c'est un problème pour le §13 et le §14
 
@@ -1053,12 +1055,31 @@ Lancer `bench` sur notre polynôme c175 en mode 3LP, sur une bande courte, et li
 | 12 000–22 000 rel/s | marginal, il faut rogner ailleurs |
 | < 12 000 rel/s | dossier réellement clos, avec le bon outil mesuré |
 
-### 15.6 Réserve
+### 15.6 Correction : le 560 était déjà là, et il utilise GLAS
 
-Le **560 manque** au lot. Si sa chaîne utilise déjà `cuda-sieve` en 3LP, le 580
-est peut-être à portée d'un changement de paramètres ; si elle a buté sur ce qu'on
-va buter, la mesure le dira aussi. Dans les deux cas, c'est la même expérience qui
-répond.
+Le §15.1 annonçait « 560 absent du lot ». **Faux** : il est dans le dépôt depuis
+le 28/10 sous `rsa560_solver/`. Je l'avais pris pour notre propre archive parce
+que son zip traîne à la racine et que le nom du dossier avait été simplifié.
+Son `NOTICE` l'identifie sans ambiguïté : copyright « enigma-rsa contributors »,
+code maison sous MIT, **Cognition GLAS** comme cribleur.
+
+Ce que ça change :
+
+| voie | cribleur | statut |
+|---|---|---|
+| A — rester sur GLAS 2LP | GLAS + 15 patches | **mesuré insuffisant** (§14 : +61 à +66 %) |
+| B — passer en 3LP sur GPU | `cuda-sieve` | **jamais mesuré à c175** |
+
+Le 560 a été gagné **en 2LP avec GLAS** — la 3LP n'était pas nécessaire de 530 à
+560. Elle ne devient nécessaire que si c169 → c175 sort du budget, ce que le §14
+indique. Les deux derniers paliers ont donc été gagnés par **deux équipes
+différentes avec deux cribleurs différents** (530 : `cuda-sieve` ; 560 : GLAS),
+ce qui explique pourquoi aucune ne publie la recette du 580 : chacune est au bout
+de sa propre chaîne.
+
+Ce que ça ne change pas : `cuda-sieve` reste le seul outil disponible capable de
+3LP à c175, et c'est toujours la seule voie B. Mais il n'est **prouvé à aucun
+palier au-delà de c160**, et c'est précisément ce que le probe doit établir.
 
 
 

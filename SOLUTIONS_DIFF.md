@@ -23,10 +23,21 @@ horodatages remis à zéro).
 | `b1bcaf7c` | **500** | c151 | `gpu_loop` (186 Ko) | 72 M | — |
 | `e6c212c4` | **512** | c154/c155 | `gpu_loop` (222 Ko) | 61 M brutes / 40,7 M uniques | 12 413 s (c154) |
 | `badf0faf` | **530** | c160 | **`cuda-sieve`** (public) | 160 M (sonde) | **14 368,7 s** |
+| `964dd74e` | **560** | c169 | **Cognition `glas-gpu`** + 15 patches | 485 M brutes | 14 774 s (blind GCP) |
 
-**Le 560 manque.** Le lot s'arrête au 530. C'est le palier qui nous intéresse le
-plus (c160 → c175 est le saut qu'on doit franchir), et c'est justement celui
-qu'on n'a pas.
+**Correction (2026-11-02)** : le 560 **était déjà dans le dépôt** sous
+`rsa560_solver/` — je l'avais pris pour notre propre archive parce que le zip
+traîne à la racine depuis le 28/10. Son `NOTICE` ne laisse aucun doute :
+« *Our own code (pipeline_c169/, the gpu/\*_patch.py patchers) is under the MIT
+License* », copyright « enigma-rsa contributors ». C'est une **soumission tierce
+publiée**, et elle ne ressemble pas aux autres : elle utilise **GLAS**, pas
+`gpu_loop` ni `cuda-sieve`.
+
+Autrement dit, les deux derniers paliers ont été gagnés par **deux équipes
+différentes avec deux cribleurs différents** :
+
+- 530 → `cuda-sieve` (équipe « Xin / Xdev », celle des 460-512) ;
+- 560 → Cognition GLAS + 15 patches (équipe « enigma-rsa contributors »).
 
 ---
 
@@ -89,6 +100,37 @@ limite de 14 400 s. **31 secondes de marge.** Le 530 a consommé tout le budget.
 C'est cohérent avec ce que la page des challenges montre pour le 560 (~14 255 s) :
 chaque palier récent se gagne à 99,8 % du temps autorisé. La chaîne n'a plus de
 slack depuis le 512.
+
+### 1.5 Le 560 : GLAS, et non `cuda-sieve`
+
+Le 560 (c169) est une chaîne **complètement différente** des cinq autres :
+
+```
+Cognition cado-nfs-public b5ca9c4, siever glas-gpu (GLAS)
+15 patches python sur sieve_core_gpu.cu, sqrt_l00.hpp, chars_pre, purge
+CADO filtering + GPU block Lanczos + CADO sqrt
+lpb 32/33, mfb 63/65 (défauts du Dockerfile), lim 200M/450M (défauts du script)
+485 M de relations brutes, N 16,8 M
+14 774 s mesurés en blind GCP
+```
+
+C'est **exactement la chaîne que ce dépôt utilise pour le 580**, aux paramètres
+près. Vérifié : `rsa580_solver/` applique les mêmes 15 patches, à une exception
+près (`glas_caps_patch`, qui est de nous, et `glas_empty_pattern_patch`, qui est
+une expérience laissée **désactivée par défaut** dans les deux chaînes —
+`GLAS_EMPTY_PATTERN=0`).
+
+Conséquence importante : **le 560 a été gagné en 2LP avec GLAS.** La 3LP n'était
+pas nécessaire pour passer de 530 à 560. Elle ne devient nécessaire que si le
+saut c169 → c175 fait sortir du budget, ce que notre mesure du §14 du journal
+indique (23 244–23 942 s pour 14 400 s).
+
+Donc les deux voies possibles pour le 580 sont désormais nommées et distinctes :
+
+| voie | cribleur | statut |
+|---|---|---|
+| A — rester sur GLAS 2LP | GLAS + 15 patches | **mesuré insuffisant** : +61 à +66 % |
+| B — passer en 3LP sur GPU | `cuda-sieve` | **jamais mesuré à c175** |
 
 ---
 
@@ -182,10 +224,10 @@ Trois issues :
 
 ## 5. Réserves honnêtes
 
-1. **Le 560 manque.** On ne sait pas quelle chaîne l'a gagné. S'il utilise déjà
-   `cuda-sieve` en 3LP, alors le 580 est peut-être à portée d'un simple
-   changement de paramètres — ou peut-être que l'équipe du 560 a déjà buté sur ce
-   qu'on va buter.
+1. **Le 560 a gagné sans `cuda-sieve`.** C'est le point qui nuance le plus la
+   découverte du §2 : la 3LP n'a pas été nécessaire de 530 à 560. `cuda-sieve`
+   reste le seul cribleur disponible capable de 3LP à c175, mais il n'est
+   **prouvé à aucun palier au-delà de c160**.
 2. **Intégration non triviale.** Le pipeline du 530 suppose `memhold.py`,
    `cado_incdup.sh`, `cado_filter160.sh`, `ds_cado.sh` et un CADO instrumenté
    (`freerel`, `dup1/dup2`, `purge`, `merge`, `replay`, `characters`, `sqrt`).

@@ -4,9 +4,10 @@
 **Cible** : semi-premier équilibré 580 bits (~175 chiffres, c175)
 **Limite** : 14 400 s (4 h) — confirmée par l'API publique des challenges
 **Machine** : RTX PRO 6000 96 Go VRAM, 24 vCPU, 85 Go RAM, `--network none`, `--read-only`, tmpfs 10 Go
-**Statut final** : non résolu. **Tous** les leviers — logiciels, mathématiques et
-matériels — sont fermés et mesurés. Le déficit est de **1,38×** et aucune voie
-connue ne le comble (§13).
+**Statut final** : non résolu. Tous les leviers — logiciels, mathématiques et
+matériels — sont fermés ou mesurés. Le déficit est de **~1,43×** (≈20 600 s
+contre 14 400 s), bande d'incertitude 19 000–24 000 s. Le §13.8 liste les
+corrections apportées à ce chiffrage après revue contradictoire.
 
 ---
 
@@ -619,9 +620,9 @@ Documentation officielle du challenge, section *Validation Environment* :
 ### 13.2 Ce que ça ferme : le débit ne peut pas être multiplié
 
 Le crible représente ~85 % du temps total. Il fallait **≥ 1,49×** d'agrégat pour
-ramener les 16 818 s de crible sous les 11 300 s disponibles (§13.3). Un partage
-sur deux devices était la seule façon d'obtenir ce facteur sans toucher aux
-mathématiques.
+ramener les ~19 400 s de crible sous les ~13 000 s disponibles (§13.3). Un
+partage sur deux devices était la seule façon d'obtenir ce facteur sans toucher
+aux mathématiques.
 
 Deux verrous, tous deux définitifs :
 
@@ -637,61 +638,92 @@ Le levier multi-GPU est donc mort **par spécification**, et le test que
 j'envisageais (deux instances sur `RTX-PRO-6000:2`) aurait mesuré un
 environnement que le validateur ne fournit pas. Il n'a pas été lancé.
 
-### 13.3 Le vrai chiffrage : le 560 et le 580 ont le **même** besoin en relations
+### 13.3 Le vrai chiffrage : le besoin est fixé par `lpb`, pas par `lim`
 
-C'est le point qui rend le verdict solide, et il n'avait pas été explicité.
+> **Correction du 2026-11-02, après revue contradictoire.** La première version
+> de cette section affirmait que le 560 et le 580 partageaient `lim 100M/150M`,
+> donc la même base de facteurs, donc le même besoin en relations. **C'est faux.**
+> La « validation » de la loi `raw ≈ 30 × FB` qui en découlait était circulaire.
+> Le chiffrage correct est ci-dessous : il donne un résultat voisin, mais pour
+> une autre raison, et avec une précision moindre.
 
-`SUBMISSION_INFO.txt` donne la config de production du 560 : `lim 100M/150M`,
-`lpb 32/33`. C'est **exactement** la config corrigée du 580. Or `lim` seul
-détermine la base de facteurs :
-
-```
-FB = π(10⁸) + π(1,5·10⁸) = 5 761 455 + 8 265 987 = 14 027 442 ≈ 14,03 M
-```
-
-**Identique pour les deux tailles.** Et `factor_c175.sh:212` documente le besoin
-réel du 560 : *« c169 at lpb 32/33 (~420M raw relations) »*. Le 580, à FB égale,
-a donc le **même** besoin : ~420 M relations.
-
-Au passage, cela **valide la loi de complétion** sur une vraie production et non
-sur un point isolé : `420 M / 14,03 M = 29,9 ≈ 30 × FB`. Le `r ≈ 29` du §10
-n'était donc pas une extrapolation fragile — il est confirmé. C'est ce qui
-autorise à chiffrer le 580 sans réserve.
-
-Ce qui change entre 560 et 580 n'est donc **pas le nombre de relations, mais le
-rendement**. Et il se déduit du run blind GCP du 560 :
-
-| | 560 | 580 |
-|---|---|---|
-| relations brutes nécessaires | ~420 M | ~420 M |
-| temps total mesuré | 14 774 s | — |
-| dont polyselect (PS_MAX) | ~900 s | ~900 s |
-| dont algèbre linéaire | ~2 200 s | ~2 200 s |
-| **dont crible** | **11 674 s** | **16 818 s** |
-| **débit implicite** | **35 977 rel/s** | **24 973 rel/s** |
-
-Le 580 crible donc **1,44× plus lentement que le 560 à réglage identique**. C'est
-la pénalité de taille de N — normes plus grandes, moins de valeurs friables par
-q — et elle n'est pas corrigeable par un paramètre : tout paramètre qui
-augmente le rendement augmente aussi le besoin, ou fait exploser l'algèbre
-linéaire (`LA ∝ FB²`).
-
-Chiffrage final du 580 :
+**Ce que le 560 expédié utilise vraiment.** `SUBMISSION_INFO.txt` ne mentionne
+aucun `lim` : il dit seulement « `factor_c169.sh` defaults under `CONTAINER=1`,
+`RSA560_LPB1=33` ». Le `Dockerfile` du 560 ne fixe **ni `RLIM` ni `ALIM`** (seule
+une ligne `ALIM=600M` est commentée, ligne 137). Les défauts effectifs sont donc
+ceux de `factor_c169.sh:170` :
 
 ```
-crible      420 M / 24 973 rel/s  = 16 818 s
-polyselect                        =    900 s
-algèbre linéaire                  =  2 200 s
-                                    ─────────
-total                             = 19 918 s
-budget                            = 14 400 s
-dépassement                       =   +38,3 %
-accélération nécessaire           = 1,38× global, ou 1,49× sur le crible seul
+RLIM=${RLIM:-200000000}; ALIM=${ALIM:-450000000}
+# lim 200M/450M: +8.8% / +13.4% / +15.1% rel/s at q 2.2M / 12.5M / 22.4M vs 100M/150M
 ```
 
-> **Révision** : le chiffre de « ~31 % au-dessus » du §10 utilisait 418 M et
-> omettait le polyselect. Le chiffrage complet ci-dessus est le bon : **38,3 %**.
-> La conclusion ne change pas, l'écart est simplement plus franc.
+Soit **`lim 200M/450M`**, et non 100M/150M. Le commentaire « ~420M raw relations »
+de `factor_c175.sh:212` décrit un profil **antérieur** ; son commentaire d'origine
+le dit lui-même : « *the 530 lims 100M/150M* » (profil du 2026-10-17).
+
+**Ce qui fixe réellement le besoin.** La table `XOVER` de `stop_cost.py:196-198` :
+
+```
+XOVER = {(31,32): (293e6,'measured'), (31,33): (366e6,'measured'),
+         (32,33): (441e6,'measured'), (32,34): (514e6,'model'), ...}
+```
+
+avec la note décisive des lignes 193-195 : *« the crossover is a property of the
+regime, not of the key … **lim/lambda variants reach the same count sooner (same
+relations needed)** »*.
+
+Autrement dit : **le besoin est indexé par `lpb`, pas par `lim`.** À 32/33 il vaut
+**441 M** au croisement, et **485 M** de relations brutes sur la clé mesurée
+(`factor_c169.sh:70`). Le 580, à `lpb 32/33`, a donc bien le même besoin que le
+560 — mais parce que le **régime de grands premiers** est partagé, pas parce que
+le `lim` l'est.
+
+**Ce que la correction détruit.** La « validation » précédente comparait un
+comptage *brut* du profil 530 (420 M) à la FB de ce même profil (14,03 M) pour en
+tirer `r ≈ 30`, puis l'appliquait comme une loi universelle. Le point indépendant
+donne tout autre chose :
+
+```
+FB(200M/450M) = π(2·10⁸) + π(4,5·10⁸) = 11 078 937 + 23 846 000 ≈ 34,92 M
+croisement 441 M / 34,92 M = 12,6        brut 485 M / 34,92 M = 13,9
+```
+
+**`r ≈ 13`, pas 30.** La constante n'est donc pas universelle : elle dépend du
+régime. La loi `raw ≈ 30 × FB` du §10 est **retirée** — elle n'était valable que
+pour le profil 530 à `lim 100M/150M`.
+
+**Le budget, recalculé proprement.** Le besoin étant fixé (441 M au croisement,
+485 M brut), seule la vitesse reste à estimer, et elle dépend du `lim` :
+
+| config | débit | crible à 485 M | LA | total |
+|---|---|---|---|---|
+| `lim 100M/150M` (défaut 580) | 24 973 rel/s (mesuré) | 19 420 s | faible (FB 14,03 M) | **~20 800 s** |
+| `lim 200M/450M` (config 560) | +8,8 à +15,1 % → ~27 200–28 700 | 16 900–17 800 s | ~2 200 s (coût post-crible mesuré du 560) | **~20 400 s** |
+
+Les deux configs atterrissent au même endroit, **~20 400–20 800 s** : le gain de
+débit du grand `lim` est absorbé par l'algèbre linéaire, dont le coût croît comme
+`FB²`. C'est d'ailleurs pourquoi le balayage du §4 avait retenu 100M/150M pour
+le 580.
+
+```
+total ≈ 20 400 à 20 800 s   contre   14 400 s
+dépassement ≈ +42 à +44 %
+accélération nécessaire ≈ 1,42 à 1,44×
+```
+
+> **Ce que je retire** : le « 19 918 s / +38,3 % / 1,38× » de la version
+> précédente. Il reposait sur 420 M (profil 530) au lieu de 485 M, et sur un
+> partage crible/LA du 560 supposé. Le chiffre correct est **~20 600 s, +43 %**,
+> avec une bande d'incertitude honnête de **19 000 à 24 000 s** (décroissance de
+> débit sur un run complet, besoin réel à c175, coût exact de la LA).
+>
+> **Ce que je retire aussi** : la « pénalité de 1,44× » présentée comme mesurée.
+> C'était une **inférence** : elle suppose que le run 560 a consommé ~900 s de
+> polyselect et ~2 200 s de LA, ce qui n'est pas instrumenté dans les notes. Le
+> rapport 24 973 / ~41 000 reste plausible, mais il compare un débit mesuré sur
+> 900 s à un débit déduit d'un total — deux natures différentes. Le §6 du README
+> avait justement identifié ce piège ; je l'ai reproduit.
 
 ### 13.4 Pourquoi le 14 774 s ne contredit pas la limite de 14 400 s
 
@@ -728,10 +760,14 @@ strictement plus dur. Il n'y a aucune marge cachée à récupérer.
 | **nombre de GPU** | **fermé (spec)** | **1 seul RTX PRO 6000 alloué** ; la chaîne n'en piloterait qu'un |
 | grâce du validateur | fermé | ~30 s, mesuré |
 
-### 13.6 Verdict définitif
+### 13.6 Verdict
 
-**RSA-580 est hors de portée de cette chaîne, sur cette machine, dans ce
-budget.** Il manque 1,38× de temps, et ce facteur ne peut venir :
+**RSA-580 est très probablement hors de portée de cette chaîne, sur cette
+machine, dans ce budget** — mais le mot « démontré » est retiré : le chiffre
+repose sur une arithmétique, pas sur un run complet.
+
+Le déficit est de **~1,43×** (≈20 600 s contre 14 400 s), avec une bande honnête
+de 19 000 à 24 000 s. Ce facteur ne peut venir :
 
 - ni d'un réglage — tous balayés et mesurés (§13.5) ;
 - ni d'un meilleur polynôme — la recherche est saturée et ropt/sopt tournent déjà ;
@@ -739,6 +775,18 @@ budget.** Il manque 1,38× de temps, et ce facteur ne peut venir :
 - ni de la 3LP — 100× trop lent, par débordement du buffer de survivants de GLAS ;
 - ni d'un cribleur alternatif — `bench`/cuda-sieve a été retiré le 2026-10-25 et
   sa source n'est plus vendored ; `las` CPU tourne à 626 rel/s.
+
+Ce qui reste **non mesuré**, et qui seul pourrait renverser la conclusion :
+
+1. le **besoin réel à c175** (441 M est mesuré à c169 ; la note de `stop_cost.py`
+   dit que le croisement est une propriété du régime, pas de la clé — mais ce
+   n'est pas vérifié à 175 chiffres) ;
+2. la **décroissance du débit** sur un run de 5 h (le 24 973 rel/s vient d'une
+   fenêtre de 900 s en début de plage de q) ;
+3. le **coût exact de la LA** à c175.
+
+Un run complet trancherait les trois d'un coup. Tant qu'il n'est pas fait, la
+formulation correcte est « ~1,43× manquant, très probablement rédhibitoire ».
 
 Le seul gain réel de la session est `GLAS_ADJUST_SQUEEZE=3` (+4,8 %), adopté.
 
@@ -750,13 +798,35 @@ Trois conditions, par ordre de plausibilité :
    qui ne déborde pas à 1,72 M par q. Ce n'est pas un réglage de GLAS : c'est un
    autre binaire. Gain attendu : le régime 3LP divise le besoin en relations par
    ~2,5, ce qui remettrait le 580 largement sous le budget.
-2. **Une machine à plusieurs GPU** — 1,49× sur le crible suffit. Le code actuel
+2. **Une machine à plusieurs GPU** — ~1,5× sur le crible suffit. Le code actuel
    ne sharde pas ; il faudrait router les bandes q sur N sessions FIFO
    (`i mod N`) et remplacer le test d'existence `nvidia-smi -L` par un comptage.
    Sans regret : repli sur un device si un seul est visible.
 3. **Comprendre l'écart de 20 % avec le concurrent sur le 560** (§12.5) — piste
    la plus faible, car même comblée intégralement elle ne donne que 1,20×,
-   contre 1,38× requis.
+   contre ~1,43× requis.
+
+### 13.8 Journal des corrections (2026-11-02)
+
+Une revue contradictoire a relevé quatre erreurs dans la première version de ce
+§13. Elles sont toutes fondées, et corrigées ci-dessus :
+
+| affirmation initiale | statut | réalité |
+|---|---|---|
+| « le 560 expédié tourne à `lim 100M/150M` » | **faux** | `Dockerfile` 560 sans `RLIM`/`ALIM` → défaut `factor_c169.sh:170` = **200M/450M** |
+| « le 420 M vient de `factor_c175.sh:212` » | **mal lu** | ce commentaire décrit le profil **530** du 17/10 (« the 530 lims 100M/150M ») |
+| « `420/14,03 = 29,9` valide `raw ≈ 30 × FB` » | **circulaire** | point indépendant : 441 M à FB 34,92 M ⇒ **r ≈ 13** |
+| « pénalité de 1,44×, mesurée » | **inférence** | compare un débit sur 900 s à un débit déduit d'un total |
+
+Deux erreurs de forme, également corrigées : le dépôt est **public** (l'API
+répond 200 en anonyme), et le §6.3 du README confondait le code du concurrent
+(non publié) avec `rsa560_solver/`, qui est bien dans le dépôt et exécutable.
+
+La conclusion survit à la correction — les deux configs atterrissent à
+~20 400–20 800 s — mais la précision affichée (« 19 918 s », « +38,3 % »,
+« 1,38× ») était illusoire. **C'est le principal enseignement de cette phase :
+un chiffrage à quatre chiffres significatifs bâti sur deux hypothèses non
+mesurées n'est pas un chiffrage, c'est une conjecture habillée.**
 
 
 

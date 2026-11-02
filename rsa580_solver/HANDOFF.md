@@ -1228,55 +1228,86 @@ dans le budget. Deux verrous :
 **Le test à deux instances glas n'a donc pas été lancé** : il aurait mesuré un
 environnement que le validateur ne fournit pas.
 
-#### 19.3 Le point qui rend le verdict solide : même FB, donc même besoin
+#### 19.3 ⚠ CORRIGÉ — le besoin est fixé par `lpb`, pas par `lim`
 
-`SUBMISSION_INFO.txt` donne la config de production du 560 : `lim 100M/150M`,
-`lpb 32/33` — **identique** au 580 corrigé (§17.2). Or `lim` seul détermine la
-base de facteurs :
+> **La première version de cette section était fausse** et est conservée en
+> substance dans le §19.8 (journal des corrections). Elle affirmait que le 560
+> expédié tournait à `lim 100M/150M` comme le 580, d'où la même base de facteurs
+> et le même besoin. **Le 560 expédié tourne à `lim 200M/450M`.** Ce qui suit est
+> le chiffrage correct.
+
+**Ce que le 560 expédié utilise.** `SUBMISSION_INFO.txt` ne mentionne aucun
+`lim`. Le `Dockerfile` 560 ne fixe **ni `RLIM` ni `ALIM`** (seule une ligne
+`ALIM=600M` est commentée, ligne 137). Les défauts effectifs sont donc ceux de
+`factor_c169.sh:170` :
 
 ```
-FB = π(10⁸) + π(1,5·10⁸) = 5 761 455 + 8 265 987 = 14 027 442 ≈ 14,03 M
+RLIM=${RLIM:-200000000}; ALIM=${ALIM:-450000000}
+# +8.8% / +13.4% / +15.1% rel/s at q 2.2M / 12.5M / 22.4M vs 100M/150M (sandbox #20)
 ```
 
-Le besoin en relations est donc le **même** pour les deux tailles. Et
-`factor_c175.sh:212` documente le chiffre réel du 560 : *« c169 at lpb 32/33
-(~420M raw relations) »*.
+Le « ~420M raw relations » de `factor_c175.sh:212` décrit le profil **antérieur**
+du 2026-10-17 — son commentaire d'origine le dit : « *the 530 lims 100M/150M* ».
 
-Corollaire important : `420 M / 14,03 M = 29,9`, ce qui **valide la loi de
-complétion `raw ≈ 30 × FB`** sur une vraie production, et non sur un point
-isolé comme au §10. Le chiffrage du 580 n'est donc pas une extrapolation.
+**Ce qui fixe le besoin.** `stop_cost.py:196-198` :
 
-Ce qui diffère est le **rendement**, déduit du run *blind GCP* du 560 :
+```
+XOVER = {(31,32): (293e6,'measured'), (31,33): (366e6,'measured'),
+         (32,33): (441e6,'measured'), (32,34): (514e6,'model'), ...}
+```
 
-| | 560 | 580 |
-|---|---|---|
-| relations brutes | ~420 M | ~420 M |
-| temps total mesuré | 14 774 s | — |
-| dont polyselect (`PS_MAX`) | ~900 s | ~900 s |
-| dont LA | ~2 200 s | ~2 200 s |
-| **dont crible** | **11 674 s** | **16 818 s** |
-| **débit implicite** | **35 977 rel/s** | **24 973 rel/s** |
+et la note des lignes 193-195 : *« the crossover is a property of the regime, not
+of the key … lim/lambda variants reach the same count sooner (same relations
+needed) »*. Le besoin est donc **indexé par `lpb`, pas par `lim`** : à 32/33,
+**441 M** au croisement et **485 M** brut (`factor_c169.sh:70`).
 
-Le 580 crible **1,44× plus lentement à réglage identique**. C'est la dépendance
-en N, et aucun paramètre ne la corrige : ce qui augmente le rendement augmente
-aussi le besoin, ou fait exploser `LA ∝ FB²`.
+**Ce que cela détruit.** La « validation » précédente comparait un comptage brut
+du profil 530 (420 M) à la FB de ce même profil (14,03 M) pour en tirer
+`r ≈ 30`, puis l'appliquait comme loi universelle. Le point indépendant :
+
+```
+FB(200M/450M) = π(2·10⁸) + π(4,5·10⁸) = 11 078 937 + 23 846 000 ≈ 34,92 M
+croisement 441 M / 34,92 M = 12,6        brut 485 M / 34,92 M = 13,9
+```
+
+**`r ≈ 13`, pas 30.** La loi `raw ≈ 30 × FB` du §10 est **retirée**.
+
+**Le rendement, lui, dépend du `lim`** — mais le gain est absorbé par la LA :
+
+| config | débit | crible à 485 M | LA | total |
+|---|---|---|---|---|
+| `lim 100M/150M` (défaut 580) | 24 973 rel/s (mesuré) | 19 420 s | faible (FB 14,03 M) | **~20 800 s** |
+| `lim 200M/450M` (config 560) | +8,8 à +15,1 % → 27 200–28 700 | 16 900–17 800 s | ~2 200 s | **~20 400 s** |
+
+Les deux atterrissent à **~20 400–20 800 s** : le coût de la LA croît comme
+`FB²`, ce qui annule le gain de débit du grand `lim`. C'est pourquoi le balayage
+du §4 avait retenu 100M/150M pour le 580.
+
+> **Retiré** : la « pénalité de 1,44× » présentée comme mesurée. C'était une
+> **inférence** — elle suppose un partage crible/LA du run 560 qui n'est pas
+> instrumenté. Elle compare en outre un débit mesuré sur 900 s à un débit déduit
+> d'un total, exactement le piège identifié au §18.4.
 
 #### 19.4 Budget final
 
 ```
-crible      420 M / 24 973 rel/s  = 16 818 s
-polyselect                        =    900 s
-algèbre linéaire                  =  2 200 s
-                                    ─────────
-total                             = 19 918 s
-budget                            = 14 400 s
-dépassement                       =   +38,3 %
-accélération nécessaire           = 1,38× global, ou 1,49× sur le crible
+crible (lim 100/150) 485 M / 24 973 rel/s  = 19 420 s
+polyselect                                 =    900 s
+algèbre linéaire                           =  ~500 s (FB 14,03 M)
+                                             ─────────
+total                                      ≈ 20 800 s
+budget                                     = 14 400 s
+dépassement                                ≈   +44 %
+accélération nécessaire                    ≈ 1,44×
 ```
 
-> **Correction du §18.4** : les « ~18 900 s / +31 % » utilisaient 418 M et
-> omettaient le polyselect. Le chiffre juste est **19 918 s / +38,3 %**. La
-> conclusion est renforcée, pas affaiblie.
+Bande d'incertitude honnête : **19 000 à 24 000 s** (besoin réel à c175,
+décroissance du débit sur 5 h, coût exact de la LA).
+
+> **Corrections successives** : le §18.4 annonçait « ~18 900 s / +31 % » (418 M,
+> sans polyselect) ; le §19.4 initial « 19 918 s / +38,3 % » (420 M, profil 530,
+> partage crible/LA supposé). Le chiffre actuel est **~20 600 s / +43 %**, avec
+> une bande. La conclusion est stable, la précision affichée ne l'était pas.
 
 #### 19.5 Pourquoi 14 774 s ne contredit pas la limite de 14 400 s
 
@@ -1297,11 +1328,16 @@ strictement plus dur. Aucune marge cachée.
 
 #### 19.6 Verdict
 
-**RSA-580 est hors de portée de cette chaîne, sur cette machine, dans ce
-budget.** Il manque 1,38×, et ce facteur ne peut venir ni d'un réglage (tous
-balayés), ni d'un meilleur polynôme (ropt + sopt déjà actifs), ni d'un second
-GPU (spec), ni de la 3LP (100× trop lent), ni d'un cribleur alternatif
-(`bench`/cuda-sieve retiré le 2026-10-25, `las` CPU à 626 rel/s).
+**RSA-580 est très probablement hors de portée de cette chaîne, sur cette
+machine, dans ce budget** — le mot « démontré » est retiré. Il manque **~1,43×**
+(≈20 600 s contre 14 400 s, bande 19 000–24 000), et ce facteur ne peut venir ni
+d'un réglage (tous balayés), ni d'un meilleur polynôme (ropt + sopt déjà actifs),
+ni d'un second GPU (spec), ni de la 3LP (100× trop lent), ni d'un cribleur
+alternatif (`bench`/cuda-sieve retiré le 2026-10-25, `las` CPU à 626 rel/s).
+
+Ce qui reste **non mesuré** et pourrait seul renverser la conclusion : le besoin
+réel à c175, la décroissance du débit sur ~5 h, le coût exact de la LA. Un run
+complet les lève d'un coup (§19.9).
 
 Seul gain réel de la session, adopté : `GLAS_ADJUST_SQUEEZE=3` (+4,8 %), avec
 `GLAS_ADJUST=3` confirmé à 1,434×.
@@ -1311,11 +1347,48 @@ Seul gain réel de la session, adopté : `GLAS_ADJUST_SQUEEZE=3` (+4,8 %), avec
 1. **Un cribleur GPU qui gère la 3LP** (buffer de survivants ne débordant pas à
    1,72 M/q) — seule voie à marge confortable, le 3LP divisant le besoin par
    ~2,5. Nécessite un autre binaire, pas un patch.
-2. **Une machine multi-GPU** — 1,49× suffit ; implémentation : router les bandes
+2. **Une machine multi-GPU** — ~1,5× suffit ; implémentation : router les bandes
    q sur N sessions FIFO (`i mod N`), remplacer le test d'existence par un
    comptage, repli sur un device. Sans regret, mais inutile pour ce challenge.
 3. **Comprendre l'écart de 20 % avec le concurrent sur le 560** — insuffisant
-   même comblé (1,20× < 1,38×). Piste write-up, le code n'étant pas publié.
+   même comblé (1,20× < 1,43×). Piste write-up : ce qui n'est pas publié est le
+   code du **concurrent** (le dépôt officiel s'arrête à 500 bits), pas
+   `rsa560_solver/`, qui est notre chaîne et se lance telle quelle.
+
+#### 19.8 Journal des corrections du 02/11
+
+Revue contradictoire ; quatre erreurs, toutes fondées, toutes corrigées :
+
+| affirmation initiale (§19.3) | statut | réalité |
+|---|---|---|
+| « le 560 expédié tourne à `lim 100M/150M` » | **faux** | `Dockerfile` 560 sans `RLIM`/`ALIM` → défaut `factor_c169.sh:170` = **200M/450M** |
+| « le 420 M vient de `factor_c175.sh:212` » | **mal lu** | ce commentaire décrit le profil **530** du 17/10 |
+| « `420/14,03 = 29,9` valide `raw ≈ 30 × FB` » | **circulaire** | point indépendant : 441 M à FB 34,92 M ⇒ **r ≈ 13** |
+| « pénalité de 1,44×, mesurée » | **inférence** | compare un débit sur 900 s à un débit déduit d'un total |
+
+Deux erreurs de forme également corrigées : le dépôt est **public** (l'API
+répond 200 en anonyme), et le §6.3 du README confondait le code du concurrent
+avec `rsa560_solver/`.
+
+La conclusion survit — les deux configs atterrissent à ~20 400–20 800 s — mais la
+précision affichée était illusoire. **Enseignement : un chiffre à quatre
+chiffres significatifs bâti sur deux hypothèses non mesurées est une conjecture
+habillée, pas un chiffrage.**
+
+#### 19.9 Le run qui manque
+
+Lancer la chaîne 560 **sans retoucher ses réglages** sur le N de 580 bits :
+
+- `WALL_TIME` non fixé (défaut `None` dans `breaking_rsa.py:203-234` : le run est
+  relation-borné, il ne se tue pas lui-même) ;
+- `TELEMETRY_DEADLINE` **surchargé** (le Dockerfile 560 le fixe à 14 385 s) ;
+- plafond Modal au-delà de 4 h, pour mesurer le total au lieu de se faire tuer ;
+- surveiller le démarrage : les `FIRST_PROBE`/`XOVER` du 560 sont calés c169 et
+  sonderont trop tôt.
+
+Coût ~6–7 $ pour 4 h, ~10 $ pour 6 h. Lecture : < 14 400 s ⇒ tout le dossier est
+à réviser ; 14 400–17 000 s ⇒ gains incrémentaux ; > 20 000 s ⇒ conclusion
+confirmée par une mesure. **Non lancé au 2026-11-02.**
 
 
 

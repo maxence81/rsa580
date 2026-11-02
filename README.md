@@ -1,6 +1,6 @@
 # RSA-580 / Enigma Subnet 63 — dépôt de reprise
 
-**Dépôt privé : <https://github.com/maxence81/rsa580>**
+**Dépôt : <https://github.com/maxence81/rsa580>** (public)
 
 ```bash
 git clone https://github.com/maxence81/rsa580.git enigma_rsa
@@ -11,9 +11,11 @@ sous la contrainte dure de **14 400 s** (4 h) du validateur Enigma SN63, sur
 RTX PRO 6000 96 Go / 24 vCPU / 85 Go RAM, `--network none`, `--read-only`,
 `/tmp` en tmpfs 10 Go.
 
-**Statut : non résolu, et démontré hors de portée.** Aucune soumission. Tous les
-leviers — réglages, polynôme, 3LP, nombre de GPU — sont fermés et mesurés. Le
-déficit est de **1,38×** ; les conditions de réouverture sont en §6.
+**Statut : non résolu, très probablement hors de portée.** Aucune soumission.
+Tous les leviers — réglages, polynôme, 3LP, nombre de GPU — sont fermés ou
+mesurés. Le déficit est de **~1,43×** (≈20 600 s contre 14 400 s), avec une
+bande d'incertitude de 19 000 à 24 000 s. Un run complet reste à faire pour
+convertir cette arithmétique en mesure (§6.2).
 
 ---
 
@@ -23,18 +25,20 @@ déficit est de **1,38×** ; les conditions de réouverture sont en §6.
 |---|---|
 | La limite est-elle vraiment 14 400 s ? | **Oui**, dure, par milestone. Confirmé par l'API publique des challenges (`max_solution_runtime = 14400`), tuée par `solution_container_manager.py:1083`. |
 | Le 560 bits a-t-il été résolu dans ce budget ? | **Oui**, par un concurrent (30 soumissions). Notre run c169 met 17 339 s et notre mesure *blind GCP* 14 774 s, alors que notre propre cible était ≤ 13 000 s → notre chaîne est marginale **déjà** sur le 560. |
-| Combien coûte le 580 en 2LP ? | **~19 900 s** : 16 818 s de crible (420 M / 24 973 rel/s) + 900 s de polyselect + 2 200 s de LA. Soit **+38,3 %** sur le budget. |
-| Pourquoi 420 M relations, et pas plus ? | Parce que le 560 et le 580 partagent `lim 100M/150M` ⇒ **même base de facteurs** (14,03 M) ⇒ même besoin. `420 M / 14,03 M = 29,9`, ce qui **valide** la loi `raw ≈ 30 × FB` sur une vraie production. |
-| Alors d'où vient l'écart ? | **Du rendement, pas du besoin** : le 580 crible à 24 973 rel/s contre 35 977 pour le 560, soit **1,44× plus lent à réglage identique**. C'est la dépendance en N, non corrigeable par un paramètre. |
+| Quelle config le 560 expédié utilise-t-il ? | **`lim 200M/450M`, `lpb 32/33`**. Son `Dockerfile` ne fixe ni `RLIM` ni `ALIM` : les défauts de `factor_c169.sh:170` s'appliquent. Le « 420 M à `lim 100/150` » d'un commentaire décrit le profil 530 du 17/10, pas le profil expédié. |
+| Combien de relations le 580 doit-il produire ? | **441 M au croisement, 485 M brutes.** Le besoin est indexé par `lpb` (32/33), **pas par `lim`** : `stop_cost.py:193-195`, *« lim/lambda variants reach the same count sooner (same relations needed) »*. |
+| Combien coûte le 580 en 2LP ? | **~20 600 s** (bande 19 000–24 000) : 19 420 s de crible à `lim 100/150`, ou 16 900–17 800 s à `lim 200/450` avec une LA plus chère — les deux atterrissent au même endroit. Soit **+43 %**. |
+| La loi `raw ≈ 30 × FB` tient-elle ? | **Non, elle est retirée.** Elle ne valait que pour le profil 530 (`lim 100/150`, FB 14,03 M). Au profil expédié : FB 34,92 M, 441 M de croisement ⇒ **r ≈ 13**. |
 | La 3LP peut-elle sauver la mise ? | **Non.** Mesuré à **46,5 rel/s** contre 4 658 en 2LP : le GPU déborde à chaque q (1,72 M de survivants par q) et retombe sur un repli CPU. 199 M de relations → ~49 jours. |
-| Et un second GPU ? | **Non, par spécification.** Le validateur alloue **un seul** RTX PRO 6000 96 Go (`--gpus all` ne donne que ce que le nœud a). Il fallait 1,49× d'agrégat. |
+| Et un second GPU ? | **Non, par spécification.** Le validateur alloue **un seul** RTX PRO 6000 96 Go (`--gpus all` ne donne que ce que le nœud a). Il fallait ~1,5× d'agrégat. |
 | Reste-t-il un réglage ? | **Non.** `lim` (10+ runs), polynôme (saturé, ropt+sopt déjà actifs), `ncurves` (bruit), caps GLAS (OOM ou 0 relation), `SIEVE_A=30` (rien), threads (ratio 1,000), 3LP (fermé), GPU (spec). |
-| Que faudrait-il ? | **1,38× le temps total**, ou 1,49× sur le crible seul. Aucune voie disponible ici (§6). |
+| Que faudrait-il ? | **~1,43× le temps total**, ou ~1,5× sur le crible seul. Aucune voie disponible ici (§6). |
 | Y a-t-il eu un gain réel ? | **Oui** : `GLAS_ADJUST_SQUEEZE=3` (+4,8 %), adopté, et `GLAS_ADJUST=3` confirmé à 1,434×. |
 
 Le détail chiffré, run par run, est dans `JOURNAL_TENTATIVES.md` (13 sections,
-§13 = clôture définitive) et `rsa580_solver/HANDOFF.md` (19 sections, dont §16
-qui corrige §15 et §19 qui clôt le dossier).
+§13 = clôture, **§13.8 = corrections après revue contradictoire**) et
+`rsa580_solver/HANDOFF.md` (§16 corrige §15, §19 clôt le dossier, §19.8 corrige
+§19.3).
 
 ---
 
@@ -184,7 +188,7 @@ plausibilité :
    disponible ici : `bench`/cuda-sieve a été retiré du Dockerfile le 2026-10-25
    et sa source n'est plus vendored ; `las` (CPU) gère la 3LP mais tourne à
    626 rel/s à `-t 14` à c160, soit ~50× trop lent.
-2. **Une machine à plusieurs GPU** — 1,49× sur le crible suffit, et le code
+2. **Une machine à plusieurs GPU** — ~1,5× sur le crible suffit, et le code
    actuel ne sharde pas (`factor_c175.sh:196`, une seule session glas). Il
    faudrait router les bandes q sur N sessions FIFO (`i mod N`) et remplacer le
    test d'existence `nvidia-smi -L` (ligne 541) par un comptage. Sans regret :
@@ -192,9 +196,12 @@ plausibilité :
    dont la spec n'alloue qu'un GPU — mais c'est le seul chemin de débit non
    mathématique qui reste.
 3. **Comprendre l'écart de 20 % avec le concurrent sur le 560** — piste la plus
-   faible : même comblée intégralement, elle ne donne que 1,20× contre 1,38×
-   requis. Le code du concurrent n'est pas publié (le dépôt officiel s'arrête au
-   500 bits), donc c'est un write-up externe à chercher, pas une source à lire.
+   faible : même comblée intégralement, elle ne donne que 1,20× contre ~1,43×
+   requis. Ce qui n'est pas publié, c'est le code du **concurrent** (le dépôt
+   officiel des solutions s'arrête au 500 bits) ; ce n'est donc pas une source à
+   lire mais un write-up externe à chercher. À ne pas confondre avec
+   `rsa560_solver/`, qui est **notre** chaîne 560, présente dans ce dépôt et
+   directement exécutable — c'est elle qu'il faut lancer pour mesurer (§6.2).
 
 ### 6.1 Deux points autrefois « ouverts », désormais tranchés
 
@@ -204,9 +211,37 @@ plausibilité :
   §13 du journal est **réfuté** — jamais atteint. L'écart s'explique par la
   taille de N : à 560 bits les normes sont plus petites, donc plus de relations
   par q au même `lim`. Voir `HANDOFF.md` §18.4 et §19.
-- **Le budget est recalculé sur ce débit** : `420 M / 24 973 = 16 818 s` de
-  crible, + 900 s de polyselect + 2 200 s de LA = **19 918 s**, soit **+38,3 %**.
-  Toute projection antérieure basée sur 29 614 rel/s est à jeter.
+- **Le budget est recalculé sur ce débit** : 485 M de relations brutes à
+  `lpb 32/33` (441 M au croisement), soit `485 M / 24 973 = 19 420 s` de crible
+  à `lim 100/150`, ou 16 900–17 800 s à `lim 200/450` avec une LA plus chère.
+  Total **~20 600 s, +43 %** (bande 19 000–24 000). Toute projection antérieure
+  basée sur 29 614 rel/s ou sur 420 M est à jeter.
+
+### 6.2 Le seul chiffre qui manque, et comment l'obtenir
+
+Trois inconnues subsistent, et un run complet les lève d'un coup :
+
+1. le **besoin réel à c175** — les 441 M sont mesurés à c169 ;
+2. la **décroissance du débit** sur ~5 h — les 24 973 rel/s viennent d'une
+   fenêtre de 900 s en début de plage de q ;
+3. le **coût exact de la LA** à 175 chiffres (et le risque d'OOM à 85 Go).
+
+Protocole : lancer la chaîne 560 **sans retoucher ses réglages** sur le N de
+580 bits, avec `WALL_TIME` non fixé et un plafond Modal au-delà de 4 h, pour
+mesurer le total au lieu de se faire tuer. Les `FIRST_PROBE`/`XOVER` du 560 sont
+calés sur c169 et sonderont trop tôt — il faut surveiller le démarrage. Coût
+~6–7 $ pour 4 h, ~10 $ pour 6 h.
+
+Lecture du résultat :
+
+| total mesuré | conclusion |
+|---|---|
+| < 14 400 s | c'était gagnable, tout le dossier de clôture est à réviser |
+| 14 400 – 17 000 s | gains incrémentaux possibles (polyselect, étapes CPU, co-crible) |
+| > 20 000 s | conclusion confirmée, cette fois par une mesure |
+
+**État au 2026-11-02 : non lancé.** Le chiffrage ci-dessus reste donc une
+arithmétique sur deux hypothèses non mesurées — d'où la bande d'incertitude.
 
 ---
 

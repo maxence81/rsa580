@@ -5,6 +5,8 @@ cof_3lp.bin
 
 # --- submission zip: byte-identical to rsa560_solver/ (extracted) -------------
 *.zip
+# dossiers extraits des zips de solutions (UUID) — voir SOLUTIONS_DIFF.md
+????????-????-????-????-????????????/
 
 # --- python caches -----------------------------------------------------------
 __pycache__/

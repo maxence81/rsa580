@@ -4,10 +4,13 @@
 **Cible** : semi-premier équilibré 580 bits (~175 chiffres, c175)
 **Limite** : 14 400 s (4 h) — confirmée par l'API publique des challenges
 **Machine** : RTX PRO 6000 96 Go VRAM, 24 vCPU, 85 Go RAM, `--network none`, `--read-only`, tmpfs 10 Go
-**Statut final** : non résolu. Tous les leviers — logiciels, mathématiques et
-matériels — sont fermés ou mesurés. Le déficit est de **~1,43×** (≈20 600 s
-contre 14 400 s), bande d'incertitude 19 000–24 000 s. Le §13.8 liste les
-corrections apportées à ce chiffrage après revue contradictoire.
+**Statut final** : non résolu, **hors de portée par mesure**. Tous les leviers —
+logiciels, mathématiques et matériels — sont fermés ou mesurés. Le run du §14
+donne **269,9 M relations à 12 160 s** quand le budget n'en autorise que ~304 M
+pour un besoin de 441 M : déficit **1,45×** en relations, total projeté
+**23 244–23 942 s** contre 14 400 s. Le §13.8 liste les corrections apportées au
+chiffrage antérieur après revue contradictoire ; le §14 les remplace par une
+mesure.
 
 ---
 
@@ -26,6 +29,7 @@ corrections apportées à ce chiffrage après revue contradictoire.
 11. [Revue de la littérature (02/11) — tri des sources et piste révélée](#litterature)
 12. [McGuire-Robinson — évalué, écarté](#mcguire)
 13. [Phase 9 — Le dernier levier (nombre de GPU) et clôture définitive](#phase-9)
+14. [Phase 10 — Le run qui tranche : mesure directe du profil 560 sur c175](#phase-10)
 
 ---
 
@@ -718,6 +722,11 @@ accélération nécessaire ≈ 1,42 à 1,44×
 > avec une bande d'incertitude honnête de **19 000 à 24 000 s** (décroissance de
 > débit sur un run complet, besoin réel à c175, coût exact de la LA).
 >
+> **⚠ Ce chiffre est lui aussi périmé** — le run du §14 a mesuré **23 244 à
+> 23 942 s (+61 à +66 %)**. La bande de 19 000–24 000 s contenait la vérité en son
+> haut, pas en son milieu : la décroissance réelle du débit est ~3× plus raide
+> que celle extrapolée.
+>
 > **Ce que je retire aussi** : la « pénalité de 1,44× » présentée comme mesurée.
 > C'était une **inférence** : elle suppose que le run 560 a consommé ~900 s de
 > polyselect et ~2 200 s de LA, ce qui n'est pas instrumenté dans les notes. Le
@@ -760,35 +769,26 @@ strictement plus dur. Il n'y a aucune marge cachée à récupérer.
 | **nombre de GPU** | **fermé (spec)** | **1 seul RTX PRO 6000 alloué** ; la chaîne n'en piloterait qu'un |
 | grâce du validateur | fermé | ~30 s, mesuré |
 
-### 13.6 Verdict
+### 13.6 Verdict — remplacé par le §14
 
-**RSA-580 est très probablement hors de portée de cette chaîne, sur cette
-machine, dans ce budget** — mais le mot « démontré » est retiré : le chiffre
-repose sur une arithmétique, pas sur un run complet.
+> **Cette section est périmée.** Elle concluait « très probablement hors de
+> portée, déficit ~1,43× (≈20 600 s) », en laissant trois inconnues ouvertes. Le
+> run du **§14** les a tranchées le 2026-11-02 : déficit **1,45× en relations**,
+> total **23 244–23 942 s**, soit **+61 à +66 %**. Le chiffre est plus mauvais que
+> celui annoncé ici, et il est mesuré. La liste des leviers fermés (§13.5) reste
+> valable.
 
-Le déficit est de **~1,43×** (≈20 600 s contre 14 400 s), avec une bande honnête
-de 19 000 à 24 000 s. Ce facteur ne peut venir :
+Ce que le §14 a effectivement levé, parmi les trois inconnues listées ici :
 
-- ni d'un réglage — tous balayés et mesurés (§13.5) ;
-- ni d'un meilleur polynôme — la recherche est saturée et ropt/sopt tournent déjà ;
-- ni d'un second GPU — la spécification n'en donne qu'un ;
-- ni de la 3LP — 100× trop lent, par débordement du buffer de survivants de GLAS ;
-- ni d'un cribleur alternatif — `bench`/cuda-sieve a été retiré le 2026-10-25 et
-  sa source n'est plus vendored ; `las` CPU tourne à 626 rel/s.
+1. **le besoin réel à c175** — non mesuré directement (le run a été arrêté avant
+   le croisement), mais borné : le besoin est ≥ 441 M, et le budget n'en produit
+   que ~304 M. Le doute n'a plus d'effet sur la conclusion ;
+2. **la décroissance du débit** — **mesurée** : −133 rel/s par chunk, moyenne
+   cumulée 22 194 rel/s. C'est ce qui a fait passer le total de 20 600 à ~23 900 s ;
+3. **le coût de la LA** — toujours non mesuré, et désormais sans importance : même
+   à zéro, le crible seul dépasse le budget de 46 %.
 
-Ce qui reste **non mesuré**, et qui seul pourrait renverser la conclusion :
-
-1. le **besoin réel à c175** (441 M est mesuré à c169 ; la note de `stop_cost.py`
-   dit que le croisement est une propriété du régime, pas de la clé — mais ce
-   n'est pas vérifié à 175 chiffres) ;
-2. la **décroissance du débit** sur un run de 5 h (le 24 973 rel/s vient d'une
-   fenêtre de 900 s en début de plage de q) ;
-3. le **coût exact de la LA** à c175.
-
-Un run complet trancherait les trois d'un coup. Tant qu'il n'est pas fait, la
-formulation correcte est « ~1,43× manquant, très probablement rédhibitoire ».
-
-Le seul gain réel de la session est `GLAS_ADJUST_SQUEEZE=3` (+4,8 %), adopté.
+Le seul gain réel de la session reste `GLAS_ADJUST_SQUEEZE=3` (+4,8 %), adopté.
 
 ### 13.7 Ce qui rouvrirait le dossier
 
@@ -804,7 +804,7 @@ Trois conditions, par ordre de plausibilité :
    Sans regret : repli sur un device si un seul est visible.
 3. **Comprendre l'écart de 20 % avec le concurrent sur le 560** (§12.5) — piste
    la plus faible, car même comblée intégralement elle ne donne que 1,20×,
-   contre ~1,43× requis.
+   contre ~1,6× requis (§14).
 
 ### 13.8 Journal des corrections (2026-11-02)
 
@@ -827,6 +827,163 @@ La conclusion survit à la correction — les deux configs atterrissent à
 « 1,38× ») était illusoire. **C'est le principal enseignement de cette phase :
 un chiffrage à quatre chiffres significatifs bâti sur deux hypothèses non
 mesurées n'est pas un chiffrage, c'est une conjecture habillée.**
+
+> **Suite (§14)** : le run de mesure a confirmé le diagnostic mais **aggravé le
+> chiffre** — 23 244 à 23 942 s, pas 20 400–20 800. La cause est identifiée : la
+> pente de décroissance du débit à `lim 200M/450M` est ~3× plus raide que celle
+> extrapolée depuis `100M/150M`. L'erreur de méthode est la même que celle
+> dénoncée ci-dessus, une couche plus bas : une pente mesurée sur un régime ne
+> vaut pas pour un autre.
+
+---
+
+<a id="phase-10"></a>
+## 14. Phase 10 — Le run qui tranche : mesure directe du profil 560 sur c175 (02/11)
+
+### 14.1 Pourquoi ce run
+
+Le §13 chiffrait le 580 par arithmétique : besoin en relations × débit mesuré. Une
+revue contradictoire a objecté, à juste titre, que ce chiffrage reposait sur deux
+hypothèses non mesurées (le besoin réel à c175, et la décroissance du débit sur
+5 h). Le seul moyen de trancher était de **faire tourner la chaîne gagnante du 560
+sur le N de 580 bits** et de lire un temps total.
+
+Config retenue : celle du 560 **expédié**, c'est-à-dire les défauts de
+`factor_c169.sh:170` que son `Dockerfile` n'écrase pas. Bannière réellement
+émise au démarrage, qui confirme les trois surcharges :
+
+```
+### c169 GNFS: 175 digits, 20 CPUs, siever glas, lpb 32/33 mfb 62/64
+    lim 200000000/450000000 A 29 lambda 2.0352/2.0379 ncurves 17/17 -t 4 qmin 2200000
+### [3/4] GPU lattice sieve + concurrent CADO probes (first probe at 450000000 raw)
+```
+
+`MFB0=62 MFB1=64` et `RLIM=200M ALIM=450M` ont bien pris (les variables explicites
+priment sur les `RSA580_*` du `Dockerfile`). `LAMBDA0/1` n'avaient pas à être
+imposés : `RSA580_LPB1=33` les déclenche déjà à `2.0352/2.0379` dans les deux
+chaînes. `FIRST_PROBE=450M` explicite a gagné sur `FIRST_PROBE_AUTO` (l'auto ne
+s'applique que si la variable est vide, `factor_c175.sh:239`). `WALL_TIME` laissé
+non fixé ⇒ `wall_budget()` renvoie `None` ⇒ run relation-borné, jamais suicidé.
+Watchdog de télémétrie neutralisé (`TELEMETRY=0`, deadlines à 26 000 s), sinon
+`os._exit()` à 14 385 s.
+
+Durée : 3 h 54 de mur, dont ~40 min de reconstruction d'image. Coût ~9–10 $.
+Run interrompu volontairement à 12 160 s de crible, une fois la conclusion
+acquise — la sonde à 450 M n'a pas été atteinte.
+
+### 14.2 Le débit, chunk par chunk
+
+Démarrage du crible 08:17:10 UTC, pré-crible (polyselect + makefb) 574 s.
+
+| chunk | rel/s | chunk | rel/s | chunk | rel/s |
+|---|---|---|---|---|---|
+| 1 | 24 268 | 13 | 23 659 | 25 | 21 885 |
+| 2 | 23 749 | 14 | 23 197 | 26 | 21 716 |
+| 3 | 26 887 | 15 | 22 768 | 27 | 21 570 |
+| **4** | **27 658** (pic) | 16 | 22 361 | 28 | 21 414 |
+| 5 | 27 217 | 17 | 21 949 | 29 | 21 335 |
+| 6 | 26 793 | 18 | 21 550 | 30 | 21 159 |
+| 7 | 26 241 | 19 | 21 156 | 31 | 20 990 |
+| 8 | 25 733 | 20 | 20 787 | 32 | 20 868 |
+| 9 | 25 314 | 21 | 20 594 | 33 | 20 714 |
+| 10 | 24 906 | 22 | 22 299 | 34 | 20 591 |
+| 11 | 24 509 | 23 | 22 184 | | |
+| 12 | 24 014 | 24 | 21 923 | | |
+
+**Pente mesurée sur les 11 derniers chunks : −133 rel/s par chunk** (quasi
+linéaire, R² visuel excellent). Un chunk ≈ 0,44 M de q ≈ 7,9 M relations.
+
+### 14.3 Le « +5,9 % » était un artefact de début de plage
+
+À 52 min de crible, la moyenne était de 26 420 rel/s, soit +5,9 % sur les
+24 973 rel/s de référence à `lim 100M/150M`. **Ce chiffre ne tient pas.** La
+moyenne cumulée du run complet est de :
+
+```
+269 873 541 / 12 160 s  =  22 194 rel/s
+```
+
+soit **−11 % sous la référence `100M/150M`**. Le grand `lim` achète du débit en
+début de plage (pic 27 658) puis le rend : la décroissance y est bien plus raide
+qu'à `100/150` (−25 % du pic au chunk 34, sur ~13 M de q). C'est exactement le
+piège identifié au §6, et il a été remarché deux fois de suite — d'abord par moi
+en annonçant « +5,9 % », ensuite par les deux estimations concurrentes qui en
+ont déduit un total de ~20 600 s.
+
+**Conséquence directe** : `lim 200M/450M` n'est pas un levier de débit à c175. Il
+déplace le travail, il ne le réduit pas.
+
+### 14.4 La borne qui tranche
+
+Le validateur tue à 14 400 s. Pré-crible 574 s ⇒ **13 826 s de crible** utiles.
+En appliquant la pente mesurée à partir du point réel (269,9 M à 12 160 s) :
+
+```
+relations produites à 14 400 s   ≈  304 M
+croisement requis (lpb 32/33)    =   441 M   (plancher c169 ; c175 ≥)
+rapport                          =   68,9 %
+déficit en relations             =   1,45×
+```
+
+**Le budget expire à 69 % du besoin en relations**, avant filtrage et algèbre
+linéaire. Ce n'est plus une extrapolation sur deux hypothèses : c'est un point de
+mesure (12 160 s de production réelle) et une pente mesurée sur 11 chunks.
+
+Total projeté, deux hypothèses encadrantes :
+
+| hypothèse | crible | + 574 s pré-crible | + ~2 200 s LA | total | écart |
+|---|---|---|---|---|---|
+| décroissance continue (−133/chunk) | 21 170 s | | | **23 942 s** | **+66 %** |
+| débit gelé à 20 591 rel/s (favorable) | 20 470 s | | | **23 244 s** | **+61 %** |
+
+La borne favorable ne dépend ni de la pente ni de la taille de la LA : même avec
+un crible à débit constant et une algèbre linéaire gratuite, il resterait
+20 470 + 574 = 21 044 s de crible, soit **+46 %**. Le verdict est robuste à toutes
+les hypothèses contestables.
+
+### 14.5 État mémoire en fin de run
+
+Relevé au chunk 34 (12 160 s), utile pour une reprise éventuelle :
+
+| ressource | valeur |
+|---|---|
+| `memfd pool` | **15 755 MB**, croissance ~380 Mo/chunk |
+| `/tmp` | 4 419 MB (max 4 458) — **stable depuis le chunk 2** |
+| `cgroup mem` | 0 MB (non instrumenté dans ce conteneur) |
+| RSS `las` (co-crible CPU) | 5 113 MB, 500–508 rel/s |
+
+Extrapolation à 441 M (chunk ~57) : `memfd` ≈ 24 Go, sous les 85 Go alloués.
+Aucun mode de défaillance mémoire n'était proche — le run aurait pu aller au bout,
+il a été arrêté pour raison économique, pas technique.
+
+### 14.6 Ce que ce run ferme, et ce qu'il ne ferme pas
+
+**Ferme** : la chaîne actuelle (GLAS, un seul GPU, 14 400 s) sur le 580, aux deux
+profils connus du 560 — `100M/150M` (~20 800 s par arithmétique) et `200M/450M`
+(**23 244–23 942 s mesurés**). Les deux dépassent le budget de 45 à 66 %.
+
+**Ne ferme pas** : les approches qui ne sont pas cette chaîne. Un cribleur GPU
+capable de 3LP diviserait le besoin en relations par ~2,5 et remettrait le 580
+sous le budget — mais c'est un autre binaire, pas un réglage, et rien dans ces
+mesures ne justifie l'investissement (le déficit à combler reste ~1,5×, et le
+risque d'échec est total).
+
+### 14.7 Trois enseignements méthodologiques
+
+1. **Un débit mesuré sur 15 min n'est pas un débit de run.** Les 26 420 rel/s du
+   début de plage et les 24 973 rel/s du §18.4 sont deux instantanés ; la seule
+   grandeur qui vaut pour un chiffrage est la moyenne cumulée sur la durée du run.
+2. **Une décroissance de −6 %/10 M peut en cacher une de −25 %/13 M.** La pente
+   dépend du régime de `lim`, donc toute extrapolation de pente d'un profil à
+   l'autre est invalide.
+3. **Le seul chiffre qui tranche est celui qu'on mesure au point d'arrêt.** Ici :
+   269,9 M à 12 160 s, quand le budget n'en permet que ~304 M pour un besoin de
+   441 M. Un run interrompu au bon moment vaut mieux qu'un run mené au bout pour
+   un chiffre qui ne peut pas changer la conclusion.
+
+> **Note d'exécution** : ajouter des clés à `ENV_EXACT` dans `modal_rsa580.py` a
+> suffi à invalider le cache d'image (le runner émet un `ENV` par surcharge), donc
+> ~40 min de recompilation CADO. À corriger avant tout run futur.**
 
 
 

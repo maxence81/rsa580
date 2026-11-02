@@ -11,11 +11,12 @@ sous la contrainte dure de **14 400 s** (4 h) du validateur Enigma SN63, sur
 RTX PRO 6000 96 Go / 24 vCPU / 85 Go RAM, `--network none`, `--read-only`,
 `/tmp` en tmpfs 10 Go.
 
-**Statut : non résolu, très probablement hors de portée.** Aucune soumission.
+**Statut : non résolu, hors de portée — mesuré, plus estimé.** Aucune soumission.
 Tous les leviers — réglages, polynôme, 3LP, nombre de GPU — sont fermés ou
-mesurés. Le déficit est de **~1,43×** (≈20 600 s contre 14 400 s), avec une
-bande d'incertitude de 19 000 à 24 000 s. Un run complet reste à faire pour
-convertir cette arithmétique en mesure (§6.2).
+mesurés. Un run de 12 160 s sur la chaîne gagnante du 560 appliquée au 580
+(§14 du journal) donne **269,9 M relations à 12 160 s, quand le budget n'en
+autorise que ~304 M pour un besoin de 441 M** : déficit **1,45×** en relations,
+total projeté **23 244–23 942 s** (+61 à +66 %).
 
 ---
 
@@ -27,18 +28,20 @@ convertir cette arithmétique en mesure (§6.2).
 | Le 560 bits a-t-il été résolu dans ce budget ? | **Oui**, par un concurrent (30 soumissions). Notre run c169 met 17 339 s et notre mesure *blind GCP* 14 774 s, alors que notre propre cible était ≤ 13 000 s → notre chaîne est marginale **déjà** sur le 560. |
 | Quelle config le 560 expédié utilise-t-il ? | **`lim 200M/450M`, `lpb 32/33`**. Son `Dockerfile` ne fixe ni `RLIM` ni `ALIM` : les défauts de `factor_c169.sh:170` s'appliquent. Le « 420 M à `lim 100/150` » d'un commentaire décrit le profil 530 du 17/10, pas le profil expédié. |
 | Combien de relations le 580 doit-il produire ? | **441 M au croisement, 485 M brutes.** Le besoin est indexé par `lpb` (32/33), **pas par `lim`** : `stop_cost.py:193-195`, *« lim/lambda variants reach the same count sooner (same relations needed) »*. |
-| Combien coûte le 580 en 2LP ? | **~20 600 s** (bande 19 000–24 000) : 19 420 s de crible à `lim 100/150`, ou 16 900–17 800 s à `lim 200/450` avec une LA plus chère — les deux atterrissent au même endroit. Soit **+43 %**. |
+| Combien coûte le 580 en 2LP ? | **23 244 à 23 942 s, mesuré** sur le profil expédié du 560 (`lim 200M/450M`, `mfb 62/64`). Soit **+61 à +66 %**. Le profil `100M/150M` donne ~20 800 s par arithmétique : les deux dépassent largement le budget. |
+| `lim 200M/450M` aide-t-il ? | **Non, il déplace le travail.** Pic à 27 658 rel/s en début de plage, mais moyenne cumulée **22 194 rel/s**, soit −11 % sous les 24 973 rel/s de `100M/150M`. Décroissance de −133 rel/s par chunk, bien plus raide qu'à `100/150`. |
+| Où en est le budget ? | À 14 400 s, le crible aurait produit **~304 M** relations sur les **441 M** requises, soit **68,9 %**. Le budget expire avant le croisement, avant même le filtrage et la LA. |
 | La loi `raw ≈ 30 × FB` tient-elle ? | **Non, elle est retirée.** Elle ne valait que pour le profil 530 (`lim 100/150`, FB 14,03 M). Au profil expédié : FB 34,92 M, 441 M de croisement ⇒ **r ≈ 13**. |
 | La 3LP peut-elle sauver la mise ? | **Non.** Mesuré à **46,5 rel/s** contre 4 658 en 2LP : le GPU déborde à chaque q (1,72 M de survivants par q) et retombe sur un repli CPU. 199 M de relations → ~49 jours. |
 | Et un second GPU ? | **Non, par spécification.** Le validateur alloue **un seul** RTX PRO 6000 96 Go (`--gpus all` ne donne que ce que le nœud a). Il fallait ~1,5× d'agrégat. |
 | Reste-t-il un réglage ? | **Non.** `lim` (10+ runs), polynôme (saturé, ropt+sopt déjà actifs), `ncurves` (bruit), caps GLAS (OOM ou 0 relation), `SIEVE_A=30` (rien), threads (ratio 1,000), 3LP (fermé), GPU (spec). |
-| Que faudrait-il ? | **~1,43× le temps total**, ou ~1,5× sur le crible seul. Aucune voie disponible ici (§6). |
+| Que faudrait-il ? | **~1,6× le temps total**, ou ~1,5× sur le crible seul. Aucune voie disponible ici (§6). |
 | Y a-t-il eu un gain réel ? | **Oui** : `GLAS_ADJUST_SQUEEZE=3` (+4,8 %), adopté, et `GLAS_ADJUST=3` confirmé à 1,434×. |
 
-Le détail chiffré, run par run, est dans `JOURNAL_TENTATIVES.md` (13 sections,
-§13 = clôture, **§13.8 = corrections après revue contradictoire**) et
-`rsa580_solver/HANDOFF.md` (§16 corrige §15, §19 clôt le dossier, §19.8 corrige
-§19.3).
+Le détail chiffré, run par run, est dans `JOURNAL_TENTATIVES.md` (14 sections,
+**§14 = le run de mesure qui clôt le dossier**, §13.8 = corrections après revue
+contradictoire) et `rsa580_solver/HANDOFF.md` (§16 corrige §15, §19 clôt le
+dossier, §19.8 corrige §19.3).
 
 ---
 
@@ -196,12 +199,12 @@ plausibilité :
    dont la spec n'alloue qu'un GPU — mais c'est le seul chemin de débit non
    mathématique qui reste.
 3. **Comprendre l'écart de 20 % avec le concurrent sur le 560** — piste la plus
-   faible : même comblée intégralement, elle ne donne que 1,20× contre ~1,43×
+   faible : même comblée intégralement, elle ne donne que 1,20× contre ~1,5×
    requis. Ce qui n'est pas publié, c'est le code du **concurrent** (le dépôt
    officiel des solutions s'arrête au 500 bits) ; ce n'est donc pas une source à
    lire mais un write-up externe à chercher. À ne pas confondre avec
    `rsa560_solver/`, qui est **notre** chaîne 560, présente dans ce dépôt et
-   directement exécutable — c'est elle qu'il faut lancer pour mesurer (§6.2).
+   directement exécutable — c'est elle qui a été mesurée en §6.2.
 
 ### 6.1 Deux points autrefois « ouverts », désormais tranchés
 
@@ -211,37 +214,36 @@ plausibilité :
   §13 du journal est **réfuté** — jamais atteint. L'écart s'explique par la
   taille de N : à 560 bits les normes sont plus petites, donc plus de relations
   par q au même `lim`. Voir `HANDOFF.md` §18.4 et §19.
-- **Le budget est recalculé sur ce débit** : 485 M de relations brutes à
-  `lpb 32/33` (441 M au croisement), soit `485 M / 24 973 = 19 420 s` de crible
-  à `lim 100/150`, ou 16 900–17 800 s à `lim 200/450` avec une LA plus chère.
-  Total **~20 600 s, +43 %** (bande 19 000–24 000). Toute projection antérieure
-  basée sur 29 614 rel/s ou sur 420 M est à jeter.
+- **Le budget est désormais mesuré, plus estimé** : 485 M de relations brutes à
+  `lpb 32/33` (441 M au croisement), et 22 194 rel/s de moyenne cumulée au profil
+  `200M/450M`. Total **23 244 à 23 942 s**, +61 à +66 % (§6.2). Toute projection
+  antérieure — 29 614 rel/s, 420 M, « +5,9 % de gain », « ~20 600 s » — est à
+  jeter.
 
-### 6.2 Le seul chiffre qui manque, et comment l'obtenir
+### 6.2 Le chiffre qui manquait : il a été mesuré
 
-Trois inconnues subsistent, et un run complet les lève d'un coup :
+Le run a été lancé le 2026-11-02 (app `ap-IbEl9TQebT7CNj5W93nLjG`) : chaîne 560
+en config expédiée (`lim 200M/450M`, `mfb 62/64`) appliquée au N de 580 bits,
+polyselect normal, `WALL_TIME` non fixé, plafond 7 h 30. Il a été **interrompu
+volontairement à 12 160 s** de crible, la conclusion étant déjà acquise.
 
-1. le **besoin réel à c175** — les 441 M sont mesurés à c169 ;
-2. la **décroissance du débit** sur ~5 h — les 24 973 rel/s viennent d'une
-   fenêtre de 900 s en début de plage de q ;
-3. le **coût exact de la LA** à 175 chiffres (et le risque d'OOM à 85 Go).
+```
+269 873 541 relations à 12 160 s   →   22 194 rel/s en moyenne cumulée
+pic 27 658 rel/s (chunk 4)         →   pente −133 rel/s par chunk
+```
 
-Protocole : lancer la chaîne 560 **sans retoucher ses réglages** sur le N de
-580 bits, avec `WALL_TIME` non fixé et un plafond Modal au-delà de 4 h, pour
-mesurer le total au lieu de se faire tuer. Les `FIRST_PROBE`/`XOVER` du 560 sont
-calés sur c169 et sonderont trop tôt — il faut surveiller le démarrage. Coût
-~6–7 $ pour 4 h, ~10 $ pour 6 h.
+À 14 400 s, le budget n'autorise que **~304 M** relations pour un besoin de
+**441 M** : **68,9 %**, soit **1,45× de déficit en relations**, avant filtrage et
+algèbre linéaire. Total projeté **23 244 à 23 942 s** (+61 à +66 %), et la borne
+la plus favorable — débit gelé à 20 591 rel/s, LA gratuite — reste à **+46 %**.
 
-Lecture du résultat :
+Correction importante que ce run a produite : `lim 200M/450M` **n'est pas** un
+levier de débit. Le pic de début de plage (27 658) est un artefact ; la moyenne
+cumulée (22 194) est **11 % sous** les 24 973 rel/s de `100M/150M`, et la
+décroissance y est bien plus raide. Le « +5,9 % » annoncé à mi-parcours était
+faux, comme l'était le total de ~20 600 s qui en découlait.
 
-| total mesuré | conclusion |
-|---|---|
-| < 14 400 s | c'était gagnable, tout le dossier de clôture est à réviser |
-| 14 400 – 17 000 s | gains incrémentaux possibles (polyselect, étapes CPU, co-crible) |
-| > 20 000 s | conclusion confirmée, cette fois par une mesure |
-
-**État au 2026-11-02 : non lancé.** Le chiffrage ci-dessus reste donc une
-arithmétique sur deux hypothèses non mesurées — d'où la bande d'incertitude.
+Détail chunk par chunk, pente, relevés mémoire : `JOURNAL_TENTATIVES.md` §14.
 
 ---
 

@@ -1288,7 +1288,7 @@ du §4 avait retenu 100M/150M pour le 580.
 > instrumenté. Elle compare en outre un débit mesuré sur 900 s à un débit déduit
 > d'un total, exactement le piège identifié au §18.4.
 
-#### 19.4 Budget final
+#### 19.4 Budget — **périmé, voir §20**
 
 ```
 crible (lim 100/150) 485 M / 24 973 rel/s  = 19 420 s
@@ -1301,13 +1301,11 @@ dépassement                                ≈   +44 %
 accélération nécessaire                    ≈ 1,44×
 ```
 
-Bande d'incertitude honnête : **19 000 à 24 000 s** (besoin réel à c175,
-décroissance du débit sur 5 h, coût exact de la LA).
-
-> **Corrections successives** : le §18.4 annonçait « ~18 900 s / +31 % » (418 M,
-> sans polyselect) ; le §19.4 initial « 19 918 s / +38,3 % » (420 M, profil 530,
-> partage crible/LA supposé). Le chiffre actuel est **~20 600 s / +43 %**, avec
-> une bande. La conclusion est stable, la précision affichée ne l'était pas.
+> **Périmé.** Ce chiffrage arithmétique a été remplacé par une mesure (§20) :
+> **23 244 à 23 942 s, +61 à +66 %**. La cause de l'écart est identifiée — la
+> décroissance du débit à `lim 200M/450M` est ~3× plus raide que celle supposée
+> ici. Le bloc ci-dessus est conservé comme trace du raisonnement, pas comme
+> résultat.
 
 #### 19.5 Pourquoi 14 774 s ne contredit pas la limite de 14 400 s
 
@@ -1326,18 +1324,14 @@ Contradiction apparente, levée :
 Conclusion : **la chaîne était déjà marginale sur le 560**, et le 580 est
 strictement plus dur. Aucune marge cachée.
 
-#### 19.6 Verdict
+#### 19.6 Verdict — **remplacé par §20**
 
-**RSA-580 est très probablement hors de portée de cette chaîne, sur cette
-machine, dans ce budget** — le mot « démontré » est retiré. Il manque **~1,43×**
-(≈20 600 s contre 14 400 s, bande 19 000–24 000), et ce facteur ne peut venir ni
-d'un réglage (tous balayés), ni d'un meilleur polynôme (ropt + sopt déjà actifs),
-ni d'un second GPU (spec), ni de la 3LP (100× trop lent), ni d'un cribleur
-alternatif (`bench`/cuda-sieve retiré le 2026-10-25, `las` CPU à 626 rel/s).
+> **Périmé.** Cette section disait « très probablement hors de portée, ~1,43×
+> manquant ». La mesure du §20 donne **1,45× en relations et +61 à +66 % de
+> temps**. Le mot « probablement » n'a plus lieu d'être.
 
-Ce qui reste **non mesuré** et pourrait seul renverser la conclusion : le besoin
-réel à c175, la décroissance du débit sur ~5 h, le coût exact de la LA. Un run
-complet les lève d'un coup (§19.9).
+Ce qui restait non mesuré ici — besoin réel à c175, décroissance du débit, coût
+de la LA — a été levé ou rendu sans effet par le §20.
 
 Seul gain réel de la session, adopté : `GLAS_ADJUST_SQUEEZE=3` (+4,8 %), avec
 `GLAS_ADJUST=3` confirmé à 1,434×.
@@ -1347,11 +1341,12 @@ Seul gain réel de la session, adopté : `GLAS_ADJUST_SQUEEZE=3` (+4,8 %), avec
 1. **Un cribleur GPU qui gère la 3LP** (buffer de survivants ne débordant pas à
    1,72 M/q) — seule voie à marge confortable, le 3LP divisant le besoin par
    ~2,5. Nécessite un autre binaire, pas un patch.
-2. **Une machine multi-GPU** — ~1,5× suffit ; implémentation : router les bandes
-   q sur N sessions FIFO (`i mod N`), remplacer le test d'existence par un
-   comptage, repli sur un device. Sans regret, mais inutile pour ce challenge.
+2. **Une machine multi-GPU** — ~1,6× suffit désormais (§20) ; implémentation :
+   router les bandes q sur N sessions FIFO (`i mod N`), remplacer le test
+   d'existence par un comptage, repli sur un device. Sans regret, mais inutile
+   pour ce challenge, dont la spec n'alloue qu'un GPU.
 3. **Comprendre l'écart de 20 % avec le concurrent sur le 560** — insuffisant
-   même comblé (1,20× < 1,43×). Piste write-up : ce qui n'est pas publié est le
+   même comblé (1,20× < 1,6×). Piste write-up : ce qui n'est pas publié est le
    code du **concurrent** (le dépôt officiel s'arrête à 500 bits), pas
    `rsa560_solver/`, qui est notre chaîne et se lance telle quelle.
 
@@ -1375,7 +1370,7 @@ précision affichée était illusoire. **Enseignement : un chiffre à quatre
 chiffres significatifs bâti sur deux hypothèses non mesurées est une conjecture
 habillée, pas un chiffrage.**
 
-#### 19.9 Le run qui manque
+#### 19.9 Le run qui manque — **il a été fait, voir §20**
 
 Lancer la chaîne 560 **sans retoucher ses réglages** sur le N de 580 bits :
 
@@ -1388,7 +1383,99 @@ Lancer la chaîne 560 **sans retoucher ses réglages** sur le N de 580 bits :
 
 Coût ~6–7 $ pour 4 h, ~10 $ pour 6 h. Lecture : < 14 400 s ⇒ tout le dossier est
 à réviser ; 14 400–17 000 s ⇒ gains incrémentaux ; > 20 000 s ⇒ conclusion
-confirmée par une mesure. **Non lancé au 2026-11-02.**
+confirmée par une mesure.
+
+---
+
+## 20. Le run de mesure (2026-11-02) — dossier clos par mesure
+
+### 20.1 Ce qui a été lancé
+
+Chaîne 580 (image en cache) avec la config du 560 expédié passée en variables
+explicites, sur le N de 580 bits. App `ap-IbEl9TQebT7CNj5W93nLjG`, interrompue
+volontairement après 12 160 s de crible.
+
+Bannière émise, qui confirme les surcharges :
+
+```
+### c169 GNFS: 175 digits, 20 CPUs, siever glas, lpb 32/33 mfb 62/64
+    lim 200000000/450000000 A 29 lambda 2.0352/2.0379 ncurves 17/17 -t 4 qmin 2200000
+```
+
+`LAMBDA0/1` n'ont pas eu à être imposés : `RSA580_LPB1=33` les déclenche déjà à
+`2.0352/2.0379` dans les deux chaînes. `FIRST_PROBE=450M` explicite gagne sur
+`FIRST_PROBE_AUTO` (`factor_c175.sh:239` : l'auto ne s'applique que si vide).
+
+### 20.2 Les mesures
+
+| grandeur | valeur |
+|---|---|
+| pré-crible (polyselect + makefb) | 574 s |
+| crible jusqu'à l'arrêt | 12 160 s |
+| relations produites | **269 873 541** |
+| **débit moyen cumulé** | **22 194 rel/s** |
+| pic (chunk 4) | 27 658 rel/s |
+| dernier chunk (34) | 20 591 rel/s |
+| **pente** | **−133 rel/s par chunk** (≈ 0,44 M de q, ≈ 7,9 M relations) |
+| `memfd pool` final | 15 755 MB (+380 Mo/chunk) |
+| `/tmp` | 4 419 MB, max 4 458 — stable depuis le chunk 2 |
+
+`PS_ADAPT pass b` a échoué (`FALLBACK: ovroptmiss`) : le polynôme vient du chemin
+de secours sopt/ropt séquentiel. Sans effet sur la conclusion, le déficit étant
+structurel.
+
+### 20.3 Le résultat
+
+```
+budget                          = 14 400 s
+dont crible disponible          = 13 826 s  (14 400 − 574)
+relations produites à 14 400 s  ≈    304 M
+besoin au croisement (32/33)    =    441 M
+rapport                         =   68,9 %
+déficit en relations            =    1,45×
+```
+
+| hypothèse | crible | + pré-crible | + LA | total | écart |
+|---|---|---|---|---|---|
+| décroissance continue | 21 170 s | 574 | ~2 200 | **23 942 s** | +66 % |
+| débit gelé (favorable) | 20 470 s | 574 | ~2 200 | **23 244 s** | +61 % |
+| débit gelé, LA gratuite | 20 470 s | 574 | 0 | **21 044 s** | +46 % |
+
+La borne la plus favorable dépasse encore le budget de 46 %. **Le verdict ne
+dépend plus d'aucune hypothèse contestable.**
+
+### 20.4 Ce que le run a corrigé dans nos modèles
+
+`lim 200M/450M` **n'est pas** un levier de débit à c175. Le pic de début de plage
+(27 658 rel/s, +5,9 % sur la référence `100M/150M`) est un artefact : la moyenne
+cumulée tombe à **22 194 rel/s, soit −11 % sous** les 24 973 rel/s de `100/150`,
+et la décroissance y est ~3× plus raide. Deux conclusions antérieures tombent :
+
+- le « +5,9 % de gain » annoncé à mi-parcours (§19.9 / README §6.2) ;
+- le total « ~20 600 s / +43 % » qui en découlait.
+
+**Règle à retenir** : une pente de décroissance mesurée sur un régime de `lim` ne
+se transporte pas à un autre régime. Et un débit mesuré sur 15 min n'est pas un
+débit de run — seule la moyenne cumulée compte.
+
+### 20.5 Verdict
+
+**RSA-580 est hors de portée de cette chaîne, sur cette machine, dans ce budget.**
+Ce n'est plus « très probablement » : c'est mesuré, avec une marge de 61 à 66 %.
+
+Ce qui reste ouvert n'est pas un réglage : c'est **un autre binaire** (cribleur
+GPU capable de 3LP, buffer de survivants ne débordant pas à 1,72 M/q). Rien dans
+ces mesures ne justifie l'investissement — le déficit à combler reste ~1,5× et le
+risque d'échec est total.
+
+### 20.6 Piège d'exécution à corriger avant tout run futur
+
+Ajouter des clés à `ENV_EXACT` dans `modal_rsa580.py` a suffi à invalider le
+cache d'image : le runner émet un `ENV` par surcharge (`=> Step 2: ENV
+FIRST_PROBE=...`, etc.), ce qui crée une nouvelle couche à chaque changement de
+valeur. Résultat : ~40 min de recompilation CADO. Passer les surcharges en
+variables d'environnement du conteneur (`env=`) plutôt qu'en `ENV` d'image
+éviterait ce coût.
 
 
 

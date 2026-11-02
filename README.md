@@ -163,9 +163,13 @@ survivants — GLAS est un binaire Cognition patché, pas un projet refondable i
 ## 6. Pistes encore ouvertes (honnêtement)
 
 1. **Comprendre l'écart de 20 % avec la chaîne qui a résolu le 560.** C'est la
-   piste la plus rentable et elle n'a pas été explorée : notre c169 met
-   17 339 s là où un concurrent a tenu 14 400 s. Chercher son write-up, son
-   `lim`, son polynôme.
+   piste la plus rentable, mais **le code du 560 n'est pas public** : le dépôt
+   officiel `qbittensor-labs/breaking-rsa-solutions` s'arrête au **500 bits**
+   (« standing frontier ») et ne contient que 340/460/480/500. Les 512, 530 et
+   560 sont marqués Complete côté API mais leur source n'a pas été publiée. Ce
+   qui est publié montre une lignée cohérente : YAFU SIQS (340), puis un
+   cribleur CUDA maison `gpu_loop` en **Franke-Kleinjung 2D** (460→480→500).
+   Reste donc à chercher un write-up externe, pas du code.
 2. **Vérifier si les chiffres c169 du commentaire de `factor_c169.sh` sont
    périmés.** 15 200 s de crible + 2 139 s de LA = 17 339 s dépasse déjà la
    limite annoncée : soit la limite réelle a changé, soit ce point de mesure

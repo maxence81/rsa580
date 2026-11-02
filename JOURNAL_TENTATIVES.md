@@ -21,6 +21,7 @@
 9. [Bilan global des leviers testés](#bilan)
 10. [Verdict et conditions de reprise](#verdict)
 11. [Revue de la littérature (02/11) — tri des sources et piste révélée](#litterature)
+12. [McGuire-Robinson — évalué, écarté](#mcguire)
 
 ---
 
@@ -547,5 +548,50 @@ Le verdict du §10 tient, mais sa formulation change — et la mesure du 02/11 r
 Ce qui n'a pas changé et qui reste le cœur du dossier : **aucun réglage de `lim`, de polynôme, de `ncurves` ou de caps ne sauve la 2LP**, et la 3LP — seule alternative — est mesurée à 46 rel/s. Le budget de 14 400 s n'est atteignable par aucune des deux voies avec les outils actuels.
 
 **Ce que le test a coûté** : un run de 5 min, ~0,05 $. C'est le meilleur rapport information/coût de tout le projet — il a transformé une hypothèse (« la cofactorisation GPU ne scinde pas en 3 ») en un diagnostic chiffré à trois composantes, et il a évité de lancer un run 3LP de 4 h qui aurait échoué.
+
+---
+
+<a id="mcguire"></a>
+## 12. McGuire-Robinson (arXiv 2001.10860) — évalué, écarté
+
+Question posée : *« ça vaudrait le coup de tester McGuire-Robinson ? personne ne l'a fait dans les challenges précédents ? »* Réponse vérifiée dans le code, pas par intuition.
+
+### 12.1 Ce que le papier propose réellement
+
+> « a different method of lattice **enumeration in three dimensions** … We use the **successive minima and shortest vectors** of the lattice instead of **transition vectors** … record computation in a 133-bit subgroup of Fp6 … nearly 3 times faster … generalizes to dimensions 4 or more, overcoming a key obstruction to the implementation of the **tower number field sieve**. »
+
+C'est une amélioration de l'**énumération des points du réseau**, pas du crible lui-même. Elle remplace les vecteurs de transition de Franke-Kleinjung par les minima successifs, et son intérêt réel est de rendre viable l'énumération en **dimension ≥ 3** — ce qui sert à deux choses : le tower NFS, et le **crible à deux special-q simultanés** (double large prime), où le réseau est de dimension 3.
+
+### 12.2 Personne ne l'utilise — vérifié, pas supposé
+
+| code | énumération | source |
+|---|---|---|
+| CADO-NFS (arbre vendored) | **Franke-Kleinjung 2D** | `sieve/las-plattice.hpp:441` — « enumerating lattice points with the Franke-Kleinjung algorithm » ; **aucune** occurrence de « successive minima » dans tout l'arbre |
+| GLAS (Cognition) | **2D**, base de réseau par `SkewGauss` par special-q | `src/glas.cpp:5` ; repli CPU en Franke-Kleinjung (`sieve_core_cpu.cpp:4`) |
+| 500 bits (Xdev, gagnant) | **Franke-Kleinjung 2D** | `gpu_loop.cu:1280` — « Franke-Kleinjung "sieving by vectors" » |
+| 460 / 480 bits | même lignée `gpu_loop` | README du dépôt officiel |
+| 340 bits | YAFU SIQS (CPU) — même pas du NFS | idem |
+
+**Aucune implémentation de production du NFS n'utilise McGuire-Robinson**, et aucun gagnant du challenge non plus. Le dépôt officiel des solutions ne publie d'ailleurs que jusqu'au 500 bits : les sources des 512, 530 et 560 n'ont jamais été publiées.
+
+### 12.3 Pourquoi ça ne viserait pas notre blocage
+
+Nos deux problèmes mesurés (§15, §11.5) sont :
+
+1. **2LP** : il manque ~1,35× de débit. Le goulot est le remplissage des buckets et le filtre à survivants sur GPU — pas l'énumération.
+2. **3LP** : 1,72 M de survivants par q font déborder le buffer. C'est une conséquence de la borne `mfb=90`, sans rapport avec l'énumération.
+
+McGuire-Robinson accélère l'énumération. Elle ne réduit ni le nombre de survivants, ni le coût du filtre, ni la taille de la base de facteurs — les trois termes qui décident de notre budget. Le gain à en attendre ici est indirect et non quantifié.
+
+### 12.4 Ce que ça coûterait
+
+GLAS est un binaire Cognition que l'on patche par remplacement de chaînes (7 patches, gains mesurés de 1 à 8 %). En changer le cœur d'énumération, c'est **écrire un cribleur**, pas le régler — et pour la variante qui en tirerait parti (2 special-q simultanés) il faudrait en plus une structure de buckets en 3D et une gestion de survivants nouvelle. À titre d'ordre de grandeur, `gpu_loop.cu` du gagnant fait **187 Ko de CUDA** pour un cribleur **2D**.
+
+Face à un déficit de 20-35 % et à un gain spéculatif, ce n'est pas le bon investissement. **Écarté.**
+
+### 12.5 Ce qui serait le bon investissement
+
+Comprendre pourquoi notre chaîne met 17 339 s sur le 560 là où un concurrent a tenu dans 14 400 s. C'est 20 % d'écart, mesuré, sur un cas **déjà résolu** — donc nécessairement atteignable. Le code n'étant pas publié, la piste est un write-up externe, pas une lecture de source.
+
 
 

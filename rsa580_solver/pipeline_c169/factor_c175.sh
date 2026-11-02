@@ -181,6 +181,10 @@ export GLAS_REGION_HALF=${GLAS_REGION_HALF:-1}   # even-row half sieve (gpu/glas
 export GLAS_REGION_RX=${GLAS_REGION_RX:-1}   # side-1 resieve extraction while L2-hot (gpu/glas_region_patch.py): -1.2% alone, HALF+RX -2.8% span (82.69 vs 85.07 s), same relation set (sandbox -3)
 export SQRT_L00=${SQRT_L00:-2}   # sqrt level-00 fragment products without CADO's per-product overhead (gpu/sqrt_l00_patch.py): 132 vs 765 s per dependency, same square root (sandbox #21)
 export GLAS_ADJUST=${GLAS_ADJUST:-3}   # per-special-q basis/shape choice (pipeline_c169/vendor/glas-adjust-strategy.patch)
+# GLAS_ADJUST_SQUEEZE=3 (2026-11-02, measured): the patch defaults to 1 while CADO's las uses 3 ("each step halves I and
+# doubles J"). A/B on the same q band [2.2M;2.4M), lim 100M/150M, poly P, ADJUST=3, all other GLAS_* set, -t 16:
+# 22,037 -> 23,088 rel/s (+4.8%), relation sets differ by construction (different lattice shapes, both valid).
+export GLAS_ADJUST_SQUEEZE=${GLAS_ADJUST_SQUEEZE:-3}
 LOGI=${LOGI:-15}; JJ=${JJ:-16384}; QMIN=${QMIN:-2200000}
 # SIEVER: glas (Cognition GPU las, CADO relation format, the production candidate) | bench (cuda-sieve,
 # the 530 path) | las (CADO's CPU siever: the SAME orchestration exercised end to end on a CPU-only box).

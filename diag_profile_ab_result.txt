@@ -1,0 +1,16 @@
+✓ Initialized. View run at 
+https://modal.com/apps/lol810-maxou2/main/ap-IuDY14qsVIzC9ZpB1CKBP4
+✓ Created objects.
+├── ✓ Uploaded C:\Users\maxen\enigma_rsa\diag_profile_ab.py
+├── ✓ Uploaded C:\Users\maxen\enigma_rsa\rsa580_solver
+└── ✓ Created Function ab.
+=== PROFILE A/B (lim 100M/150M, poly P, q 2.2M-2.4M) ===
+-t 16 : 2,766,971 rel   15,372.1 rel/s   last_q/surv None
+-t 20 : 2,766,972 rel   15,372.1 rel/s   last_q/surv None
+
+ratio -t16 / -t20 = 1.000
+reference: run R measured 29,614 rel/s at this lim (CONTAINER=0, -t 20)
+target to close the gap: ~38,000-40,000 rel/s
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+https://modal.com/apps/lol810-maxou2/main/ap-IuDY14qsVIzC9ZpB1CKBP4

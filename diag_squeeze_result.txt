@@ -1,0 +1,15 @@
+✓ Initialized. View run at 
+https://modal.com/apps/lol810-maxou2/main/ap-dftar6NI14Zngcf07IPAuG
+✓ Created objects.
+├── ✓ Uploaded C:\Users\maxen\enigma_rsa\diag_adjust.py
+├── ✓ Uploaded C:\Users\maxen\enigma_rsa\rsa580_solver
+└── ✓ Created Function run.
+=== GLAS_ADJUST_SQUEEZE (ADJUST=3, all other pipeline GLAS_* set, -t 16) ===
+a3s1 : 3,966,756 rel   22,037.5 rel/s
+a3s3 : 4,155,918 rel   23,088.4 rel/s
+
+gain SQUEEZE 3 vs 1 = 1.048x
+references: ADJUST=0 = 15,372 | ADJUST=3,SQUEEZE=1 = 22,037 | pipeline = 29,614
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+https://modal.com/apps/lol810-maxou2/main/ap-dftar6NI14Zngcf07IPAuG

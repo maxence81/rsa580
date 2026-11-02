@@ -1095,6 +1095,85 @@ levée. Le point 15 200 s + 2 139 s est une mesure ancienne ; la mesure de
 production plus récente donne **14 774 s wall**, soit 2,6 % au-dessus de la
 limite — donc le 560 était bien à portée, et notre chaîne l'est presque aussi.
 
+### 18. Test du profil et découverte de GLAS_ADJUST (2026-11-02)
+
+Suite du §17 : le profil `CONTAINER=1` (`SIEVE_T=16`, `NCPU=20`) pouvait-il
+expliquer l'écart de débit ? Trois runs instrumentés, même bande
+`q ∈ [2,2 M ; 2,4 M)`, `lim 100M/150M`, polynôme P, `-A 29`.
+
+#### 18.1 Le profil de threads n'explique rien : ratio exactement 1,000
+
+| bras | relations (180 s) | débit |
+|---|---|---|
+| `-t 16` (profil de production) | 2 766 971 | 15 372,1 rel/s |
+| `-t 20` (ce qu'on utilisait) | 2 766 972 | 15 372,1 rel/s |
+
+**Ratio 1,000**, à une relation près. `glas -t` ne pilote que les threads hôte
+(facul + travail hôte), et glas ne consomme que ~3,3 cœurs quel que soit `-t`
+(cf. le commentaire de `factor_c169.sh:77`). **L'hypothèse « c'est le profil »
+est morte.**
+
+#### 18.2 Ce qui explique l'écart : `GLAS_ADJUST`
+
+Les 15 372 rel/s ci-dessus sont très en dessous des ~29 600 attendus au même
+`lim`. La cause est que le binaire compile les patchs avec des défauts
+**inactifs** :
+
+```c
+/* glas-adjust-strategy.patch:25 */
+static int const v = getenv("GLAS_ADJUST") ? atoi(getenv("GLAS_ADJUST")) : 0;
+```
+
+`GLAS_ADJUST` vaut donc **0** si on ne le pose pas, et le pipeline le pose à 3
+(`factor_c175.sh:183`). Isolation, tous les autres `GLAS_*` du pipeline posés :
+
+| configuration | débit | gain |
+|---|---|---|
+| `GLAS_ADJUST=0` | 15 372 rel/s | — |
+| `GLAS_ADJUST=0` + les 10 autres `GLAS_*` | 15 372 rel/s | **1,000×** |
+| `GLAS_ADJUST=3` | 22 037 rel/s | **1,434×** |
+| `GLAS_ADJUST=3 GLAS_ADJUST_SQUEEZE=3` | 23 088 rel/s | +4,8 % |
+
+Deux enseignements :
+
+1. **`GLAS_ADJUST=3` vaut 1,43×.** C'est le plus gros levier unitaire du
+   cribleur, et il était déjà actif dans le pipeline — mais **toute mesure faite
+   avec un `glas-gpu` invoqué à la main est 43 % trop basse**. C'est le piège qui
+   a rendu mes trois premiers diagnostics (§11.5, 18.1) incomparables au
+   pipeline.
+2. **Les 10 autres `GLAS_*` ne donnent rien à ce `lim`** (15 372 dans les deux
+   cas). Les gains documentés par patch (−2,6 %, −4,7 %, −7,9 %…) ont été
+   mesurés à d'autres régimes ; ils ne se cumulent pas ici.
+
+#### 18.3 Gain gratuit adopté : `GLAS_ADJUST_SQUEEZE=3`
+
+Le patch laisse `GLAS_ADJUST_SQUEEZE` à **1** alors que CADO utilise **3**
+(« each step halves I and doubles J »). Mesuré : **+4,8 %**. Aucun des deux
+pipelines ne le réglait. Adopté comme défaut dans `factor_c175.sh`.
+
+#### 18.4 ⚠ Désaccord de mesure à trancher avant toute projection
+
+La mesure directe donne **23 088 rel/s** à `lim 100M/150M` avec `ADJUST=3
+SQUEEZE=3`, alors que le §13 tabulait **29 614 rel/s** au même `lim`, même
+polynôme, même bande. **Les deux ne peuvent pas être vrais.**
+
+Note technique : dans le pipeline, `relq` vaut `n/w` où `w` est la **largeur de
+bande en q** (`factor_c175.sh:1561`), donc des relations par unité de q — **pas
+des rel/s**. Si le 29 614 du §13 a été dérivé de `relq`, il est faux par
+construction. C'est exactement le type d'erreur qui a déjà coûté deux runs à ce
+projet (§1, le clamp).
+
+**Conséquence possible, et elle est défavorable** : à 23 088 rel/s,
+`418 M / 23 088 = 18 100 s` de crible + ~2 200 s de LA = **~20 300 s**, soit
+**41 % au-dessus** du budget, et non 13 %. Le §15.4 (plancher 15 500-16 000 s)
+reste cohérent en ordre de grandeur, mais la projection optimiste du §17.5 doit
+être considérée comme non fiable tant que ce désaccord n'est pas résolu.
+
+**À faire avant toute décision** : re-mesurer le débit sur une fenêtre longue
+(≥ 10 min, plusieurs chunks) en horodatant côté hôte, et recalculer le tableau
+du §13 sur cette base. C'est un run de 10 min.
+
+
 
 
 

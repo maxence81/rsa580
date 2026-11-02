@@ -1,0 +1,15 @@
+✓ Initialized. View run at 
+https://modal.com/apps/lol810-maxou2/main/ap-IfMpKHBD44cTkJ2j97vCxD
+✓ Created objects.
+├── ✓ Uploaded C:\Users\maxen\enigma_rsa\diag_adjust.py
+├── ✓ Uploaded C:\Users\maxen\enigma_rsa\rsa580_solver
+└── ✓ Created Function run.
+=== GLAS_ADJUST ISOLATION (all other pipeline GLAS_* set, -t 16) ===
+GLAS_ADJUST=0 : 2,766,970 rel   15,372.1 rel/s
+GLAS_ADJUST=3 : 3,966,755 rel   22,037.5 rel/s
+
+gain ADJUST 3 vs 0 = 1.434x
+references: bare glas (no GLAS_* at all) = 15,372 rel/s; pipeline = 29,614 rel/s
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+https://modal.com/apps/lol810-maxou2/main/ap-IfMpKHBD44cTkJ2j97vCxD

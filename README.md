@@ -22,7 +22,7 @@ sont fermés et mesurés ; il reste une impasse structurelle documentée (§5).
 |---|---|
 | La limite est-elle vraiment 14 400 s ? | **Oui**, dure, par milestone. Confirmé par l'API publique des challenges (`max_solution_runtime = 14400`), tuée par `solution_container_manager.py:1083`. |
 | Le 560 bits a-t-il été résolu dans ce budget ? | **Oui**, par un concurrent (30 soumissions). Notre propre run c169 met 17 339 s → notre chaîne est ~20 % plus lente à réglage comparable. |
-| Combien coûte le 580 en 2LP ? | **~17 800–19 400 s** (crible + LA), soit 23–35 % au-dessus du budget, filtrage non compté. Plancher sur tous les régimes `lim` balayés. |
+| Combien coûte le 580 en 2LP ? | **~18 900 s** au meilleur point mesuré (`lim 100/150`, 24 973 rel/s : 16 740 s de crible + ~2 200 s de LA), soit **~31 % au-dessus** du budget, filtrage non compté. Les autres régimes ne font pas mieux. |
 | La 3LP peut-elle sauver la mise ? | **Non.** Mesuré à **46,5 rel/s** contre 4 658 en 2LP : le GPU déborde à chaque q (1,72 M de survivants par q) et retombe sur un repli CPU. 199 M de relations → ~49 jours. |
 | Reste-t-il un réglage ? | **Non.** `lim` (10+ runs), polynôme (saturé), `ncurves` (bruit), caps GLAS (OOM ou 0 relation), `SIEVE_A=30` (rien), 3LP (fermé). |
 | Que faudrait-il ? | **~1,35× le débit** du cribleur, ou un cribleur GPU capable de 3LP. Les deux sont hors de portée en réglage. |
@@ -162,18 +162,17 @@ survivants — GLAS est un binaire Cognition patché, pas un projet refondable i
 
 ## 6. Pistes encore ouvertes (honnêtement)
 
-1. **Comprendre l'écart de débit de ~1,35× avec la chaîne 560 — et c'est
-   faisable en local.** `rsa560_solver/` est dans ce dépôt, et son commentaire
-   de production documente **14 774 s wall pour 485 M de relations** à
-   `lpb 32/33` (`factor_c169.sh:73`), soit ~40 000 rel/s. Notre mesure du 580 au
-   même `lim` donne 29 614 rel/s. Les deux pipelines sont quasi identiques
-   (1687 vs 1689 lignes), donc l'écart vient du **profil** (`CONTAINER=1` :
-   `SIEVE_T=16`, `NCPU=20`) ou du **polynôme** (la production passe par
-   ropt/sopt), pas du code. À 38 000 rel/s le 580 tiendrait en **13 200 s**.
-   Voir `HANDOFF.md` §17.5.
-2. **Vérifier si les chiffres c169 du commentaire de `factor_c169.sh` sont
-   périmés.** Résolu : la mesure de production récente est 14 774 s wall, pas
-   17 339 s (voir §17.5).
+1. ~~Comprendre l'écart de débit de ~1,35× avec la chaîne 560~~ — **résolu, et ce
+   n'était pas un défaut.** Mesure longue du 2026-11-02 (901,6 s, horodatage
+   hôte) : le 580 à `lim 100M/150M` fait **24 973 rel/s en moyenne**, 24 117 en
+   état stationnaire, avec un pic de fenêtre à 26 946. Le chiffre de 29 614 du
+   §13 est **réfuté** (jamais atteint). L'écart avec la chaîne 560 s'explique
+   par la **taille de N** : à 560 bits les normes sont plus petites, donc plus
+   de relations par q au même `lim`. Voir `HANDOFF.md` §18.4.
+2. **Recalculer le budget sur le vrai débit.** À 24 973 rel/s,
+   `418 M / 24 973 = 16 740 s` + ~2 200 s de LA = **~18 900 s**, soit **31 %**
+   au-dessus de 14 400 s (et davantage avec la décroissance mesurée, ~−6,2 %
+   par 10 M). Toute projection antérieure basée sur 29 614 rel/s est à jeter.
 3. **Un cribleur GPU qui gère la 3LP.** Aucun n'est disponible ici :
    `bench`/cuda-sieve a été retiré du Dockerfile le 2026-10-25 et sa source
    n'est plus vendored ; `las` (CPU) gère la 3LP mais tourne à 626 rel/s à

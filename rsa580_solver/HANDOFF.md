@@ -1151,27 +1151,47 @@ Le patch laisse `GLAS_ADJUST_SQUEEZE` à **1** alors que CADO utilise **3**
 (« each step halves I and doubles J »). Mesuré : **+4,8 %**. Aucun des deux
 pipelines ne le réglait. Adopté comme défaut dans `factor_c175.sh`.
 
-#### 18.4 ⚠ Désaccord de mesure à trancher avant toute projection
+#### 18.4 ⚠ Désaccord de mesure — TRANCHÉ le 2026-11-02
 
-La mesure directe donne **23 088 rel/s** à `lim 100M/150M` avec `ADJUST=3
+La mesure directe donnait **23 088 rel/s** à `lim 100M/150M` avec `ADJUST=3
 SQUEEZE=3`, alors que le §13 tabulait **29 614 rel/s** au même `lim`, même
-polynôme, même bande. **Les deux ne peuvent pas être vrais.**
+polynôme, même bande. **Les deux ne pouvaient pas être vrais.**
 
-Note technique : dans le pipeline, `relq` vaut `n/w` où `w` est la **largeur de
-bande en q** (`factor_c175.sh:1561`), donc des relations par unité de q — **pas
-des rel/s**. Si le 29 614 du §13 a été dérivé de `relq`, il est faux par
-construction. C'est exactement le type d'erreur qui a déjà coûté deux runs à ce
-projet (§1, le clamp).
+Mesure longue (`diag_rate_long.py`, app `ap-CCzmtAEqqXUA7Fz9rOPArE`), 901,6 s,
+un seul processus glas, horodatage hôte, échantillonnage toutes les 30 s :
 
-**Conséquence possible, et elle est défavorable** : à 23 088 rel/s,
-`418 M / 23 088 = 18 100 s` de crible + ~2 200 s de LA = **~20 300 s**, soit
-**41 % au-dessus** du budget, et non 13 %. Le §15.4 (plancher 15 500-16 000 s)
-reste cohérent en ordre de grandeur, mais la projection optimiste du §17.5 doit
-être considérée comme non fiable tant que ce désaccord n'est pas résolu.
+| t (s) | cumul | débit de fenêtre | cumul moyen |
+|---|---|---|---|
+| 30 | 754 318 | 25 144 | 25 144 |
+| 90 | 2 368 585 | **26 946** (pic) | 26 288 |
+| 180 | 4 724 243 | 25 766 | 26 202 |
+| 300 | 7 824 046 | 25 792 | 26 037 |
+| 601 | 15 339 130 | 24 664 | 25 527 |
+| 901 | 22 515 558 | 23 431 | **24 973** |
 
-**À faire avant toute décision** : re-mesurer le débit sur une fenêtre longue
-(≥ 10 min, plusieurs chunks) en horodatant côté hôte, et recalculer le tableau
-du §13 sur cette base. C'est un run de 10 min.
+- **moyenne 901,6 s : 24 973 rel/s** ; état stationnaire (421 dernières s) :
+  **24 117 rel/s**.
+- **Le pic de fenêtre est 26 946 rel/s : 29 614 n'est atteint dans aucune
+  fenêtre.** Le chiffre du §13 est donc **réfuté**.
+- La décroissance est réelle : 26 946 → 23 431 sur ~20 M de relations, soit
+  **~−6,2 % par 10 M** (ajustement log-linéaire sur 8 points).
+- Variance inter-runs : la même config mesurée à 180 s donnait 23 088 puis
+  26 202 rel/s, soit **13 % d'écart**. Toute mesure courte est donc à ±13 %.
+
+**Conséquences, et elles sont défavorables :**
+
+1. À 24 973 rel/s constants, `418 M / 24 973 = 16 740 s` de crible + ~2 200 s
+   de LA = **~18 900 s**, soit **31 % au-dessus** du budget. Avec la
+   décroissance mesurée c'est pire.
+2. La projection optimiste du §17.5 (« 13 200 s, le 580 tient ») est **close**.
+3. L'« écart de 1,35× » avec la chaîne 560 s'explique très probablement par la
+   **taille de N** : à 560 bits les normes sont plus petites, donc plus de
+   relations par q au même `lim`. Ce n'est pas un défaut à corriger.
+
+**Méthode à retenir** : ne jamais dériver un débit de `relq` (relations par
+unité de q, `factor_c175.sh:1561`) ; toujours mesurer des relations par seconde
+horodatées côté hôte, sur ≥ 10 min et plusieurs fenêtres.
+
 
 
 

@@ -1,0 +1,49 @@
+✓ Initialized. View run at 
+https://modal.com/apps/lol810-maxou2/main/ap-CCzmtAEqqXUA7Fz9rOPArE
+✓ Created objects.
+├── ✓ Uploaded C:\Users\maxen\enigma_rsa\diag_rate_long.py
+├── ✓ Uploaded C:\Users\maxen\enigma_rsa\rsa580_solver
+└── ✓ Created Function measure.
+=== LONG RATE MEASUREMENT (lim 100M/150M, poly P, ADJUST=3 SQUEEZE=3) ===
+wall 901.6 s   relations 22,515,558   mean 24,972.9 rel/s
+
+  t (s)      cum rel  window rel/s  cum rel/s
+     30      754,318        25,144     25,144
+     60    1,560,210        26,774     25,960
+     90    2,368,585        26,946     26,288
+    120    3,159,515        26,277     26,285
+    150    3,948,694        26,306     26,290
+    180    4,724,243        25,766     26,202
+    210    5,490,447        25,540     26,108
+    240    6,277,528        26,149     26,113
+    270    7,047,695        25,672     26,064
+    300    7,824,046        25,792     26,037
+    330    8,590,189        25,538     25,991
+    361    9,360,061        25,577     25,957
+    391   10,107,809        24,925     25,878
+    421   10,868,038        25,257     25,833
+    451   11,618,215        25,006     25,778
+    481   12,371,885        25,039     25,732
+    511   13,114,609        24,757     25,675
+    541   13,853,350        24,543     25,612
+    571   14,599,214        24,862     25,572
+    601   15,339,130        24,664     25,527
+    631   16,067,518        24,199     25,464
+    661   16,797,467        24,332     25,412
+    691   17,518,843        23,966     25,349
+    721   18,235,513        23,889     25,288
+    751   18,971,740        24,459     25,255
+    781   19,681,401        23,655     25,194
+    811   20,384,419        23,434     25,129
+    841   21,095,367        23,620     25,075
+    871   21,810,289        23,831     25,032
+    901   22,515,558        23,431     24,978
+
+steady-state (last 421 s): 24,117.1 rel/s
+whole run: 24,972.9 rel/s
+
+references: 23,088 (direct 180 s) vs 29,614 (HANDOFF 13 table)
+expected relations at 900 s: 20.8M (23,088) / 26.6M (29,614)
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+https://modal.com/apps/lol810-maxou2/main/ap-CCzmtAEqqXUA7Fz9rOPArE

@@ -23,6 +23,11 @@ ENV_EXACT = {
     "NCURVES0", "NCURVES1", "TD", "PS_SECS", "PS_MAX", "FIRST_PROBE", "PROBE_STEP",
     "PS_BATCHES", "PS_ADAPT", "PS_ADAPT_MAXB", "PS_ADAPT_E", "PS_NCPU", "PS_P", "PS_ADMAX",
     "PS_ADMIN", "PS_INCR", "PS_NQ", "PS_ADMAX_GPU", "POLY_ONLY", "POLY_IN", "POLY_TS", "POLY_B64",
+    # The telemetry watchdog (_telem_watchdog in breaking_rsa.py) calls os._exit() at TELEMETRY_DEADLINE, which the
+    # Dockerfile pins to 14,385 s -- a run meant to measure the TRUE total of a 580 must push these past its ceiling,
+    # otherwise it dies at 3 h 59 and measures the validator's budget instead of the pipeline's cost.
+    # WALL_TIME must stay UNSET: wall_budget() returns None, so the run is relation-bound and never self-kills.
+    "TELEMETRY", "TELEMETRY_DEADLINE", "TELEMETRY_LATE_DEADLINE", "WALL_TIME",
 }
 ENV_OVERRIDE = {
     k: v
@@ -48,7 +53,9 @@ image = (
     gpu="RTX-PRO-6000",
     cpu=24,
     memory=87040,
-    timeout=14400,
+    # 14,400 s is the VALIDATOR's budget, not ours. This run exists to measure what the chain actually costs on a 580
+    # (winning-560 regime, unmodified), so the ceiling has to sit above the expected ~21,000 s total: 7.5 h.
+    timeout=27000,
 )
 def run_solver(challenge_id: str, problem_json: str) -> int:
     # POLY_B64: base64 of a CADO polynomial file captured from an earlier run (POLY_ONLY=/dev/stdout). It is

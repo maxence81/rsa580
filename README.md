@@ -16,18 +16,24 @@ Quatre combinaisons cribleur × régime ont été mesurées, aucune ne passe :
 
 | chaîne | besoin | produit dans le budget | déficit |
 |---|---|---|---|
-| **GLAS 2LP** (celle du 560) | 441 M | **270 M** (mesuré) | **1,63×** |
+| **GLAS 2LP** (celle du 560) | 441 M | **304 M** (projeté §14) | **1,45×** |
 | `cuda-sieve` 2LP | 441 M | 118 M | 3,7× |
 | `cuda-sieve` 3LP | ~300 M | 75 M | 4,0× |
 | `cuda-sieve` 3LP petite FB | ? | 29 M | ≥ 6× |
 
+*Déficit = besoin ÷ ce que le budget de 14 400 s permet de produire.*
+
 Deux résultats qui closent le débat ouvert au §15 : la **3LP n'apporte que
 +25 %** de relations par q (pas les 2,2× espérés) pour **2× le coût** — c'est un
-net recul, `rel/s` tombe à 0,57–0,80× ; et **`cuda-sieve` est ~2,5× plus lent que
-GLAS à c175** à paramètres identiques. Le seul cribleur qui sait faire la 3LP est
-donc celui qui est trop lent. Voir `JOURNAL §16` et `SOLUTIONS_DIFF.md`.
-Il faudrait un cribleur qui ait la vitesse de GLAS **et** la 3LP de `cuda-sieve` :
-projet de développement, pas réglage.
+net recul, `rel/s` tombe à 0,57–0,80× ; et **`cuda-sieve` est 2,3× plus lent que
+GLAS à c175** (270 M contre 118 M sur le même budget, à paramètres identiques).
+Le seul cribleur qui sait faire la 3LP est donc celui qui est trop lent.
+Voir `JOURNAL §16` et `SOLUTIONS_DIFF.md`.
+
+La pénalité de la 3LP étant le coût de l'**ECM**, intrinsèque au régime et non
+au cribleur, un hybride « vitesse de GLAS + 3LP » n'est **pas justifié** par ces
+mesures : il demanderait trois prémisses non démontrées, dont deux sont
+contredites par les chiffres ci-dessus.
 
 ---
 

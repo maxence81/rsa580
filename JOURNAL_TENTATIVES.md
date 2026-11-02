@@ -1138,59 +1138,100 @@ absence de cofactorisation).
 
 ### 16.4 La comparaison qui tranche : `cuda-sieve` contre GLAS
 
-À **paramètres identiques** (`ctl2lp`), sur le **même polynôme**, le **même GPU** :
+À **paramètres identiques** (`ctl2lp`), sur le **même polynôme**, le **même GPU**,
+sur le **même budget de 12 000 s de crible** :
 
-| | relations en ~12 000 s | rel/s moyen |
+| | relations produites | rel/s moyen |
 |---|---|---|
-| **GLAS** (mesuré §14, q 2,2–17,2 M) | **269,9 M** | **22 194** |
-| **`cuda-sieve`** (projeté, même plage) | **118 M** | **~8 600** |
+| **GLAS** (§14 : 269,9 M en 12 160 s, q 2,2–17,2 M) | **270 M** | **22 194** |
+| **`cuda-sieve`** (projeté, même plage de q) | **118 M** | ~8 600 |
 
-**GLAS est ~2,5× plus rapide que `cuda-sieve` à c175.** Le cribleur qu'on avait
-déjà est le meilleur des deux, et de loin.
+```
+270 / 118 = 2,29  →  GLAS est 2,3× plus rapide
+```
+
+Le cribleur qu'on avait déjà est le meilleur des deux, et nettement.
 
 Ce n'est pas un artefact de réglage : `ms/q` de `cuda-sieve` (22,8) est du même
-ordre qu'à c160 (24,1) alors que la taille de N a augmenté de 15 bits — sa
-géométrie n'est pas le problème. C'est bien un écart d'implémentation.
+ordre qu'à c160 (24,1) alors que N a grossi de 15 bits — sa géométrie n'est pas
+le problème. C'est un écart d'implémentation.
+
+> **Réserve de méthode** : le probe a tourné en cofactorisation GPU dans la
+> boucle (`--cofactor`), alors que la production du 530 en 2LP utilisait
+> `--candidates` + `cofac_cpu` pour sortir ce coût du GPU (mesuré à c160 :
+> 26,2 contre 28,2 ms/q, soit −7 %). Le gain possible est de quelques ms par q
+> sur ~23 : il ne comble pas 2,3×, mais c'est une différence réelle entre le
+> test et la production.
 
 ### 16.5 Verdict : quatre combinaisons, aucune ne passe
 
+**Définition du déficit, utilisée partout ci-dessous** : `besoin ÷ ce que le
+budget de 14 400 s permet de produire`. Pour GLAS c'est 441 M ÷ 304 M (la
+projection du §14 à 14 400 s), soit **1,45×**. Les 270 M du tableau précédent
+sont ce que le run **avait produit à 12 160 s**, quand il a été arrêté — pas ce
+que le budget autorisait. Ne pas confondre les deux : 441/270 = 1,63× est une
+borne supérieure, pas le déficit.
+
 | chaîne | besoin | produit dans le budget | déficit |
 |---|---|---|---|
-| GLAS 2LP | 441 M | **270 M** (mesuré) | **1,63×** |
-| `cuda-sieve` 2LP | 441 M | 118 M (projeté) | 3,7× |
-| `cuda-sieve` 3LP | ~300 M (estimation CADO) | 75 M (projeté) | 4,0× |
-| `cuda-sieve` petite FB 3LP | ? | 29 M (projeté) | ≥ 6× |
+| **GLAS 2LP** (celle du 560) | 441 M | **304 M** (projeté §14) | **1,45×** |
+| `cuda-sieve` 2LP | 441 M | 118 M | 3,7× |
+| `cuda-sieve` 3LP | ~300 M (estimation CADO) | 75 M | 4,0× |
+| `cuda-sieve` 3LP petite FB | ? | 29 M | ≥ 6× |
 
-**La voie B est fermée par la mesure**, et pour deux raisons indépendantes :
+**La voie B est fermée par la mesure**, pour deux raisons indépendantes :
 `cuda-sieve` est trop lent à c175, et la 3LP n'apporte pas le facteur espéré.
 
 Le pari « 199 M en 3LP » ne tenait déjà pas (CADO vise 290–315 M à c165–c170 en
-3LP), mais même en l'acceptant, 199 M contre 75 M produits laisse un déficit de
-2,65×.
+3LP), mais même en l'acceptant, 199 M contre 75 M produits laisse 2,65×.
 
-### 16.6 Ce que ça clôt définitivement
+### 16.6 Ce que ça clôt — et la conséquence que le rapport initial n'avait pas tirée
 
-La question ouverte au §15 était : « `cuda-sieve` en 3LP peut-il combler 1,63× ? »
-La réponse est non, et le raisonnement est maintenant complet :
+J'avais écrit au §16.7 : « il faudrait un cribleur qui ait la vitesse de GLAS et
+la 3LP de `cuda-sieve` ». **Ces mesures ne justifient pas ce projet**, et la
+raison est plus intéressante que la conclusion elle-même.
 
-- **3LP n'apporte que +25 % de rendement**, pas les 2,2× espérés. L'hypothèse
-  d'un facteur 2,2 venait d'un modèle de besoin en relations (199 M vs 441 M)
-  qui n'a jamais été mesuré et que CADO contredit.
-- **Le seul cribleur qui sait faire la 3LP est 2,5× plus lent** que celui qui ne
-  sait pas la faire.
-- Le produit des deux (`2,5 / 1,25 = 2,0`) est **exactement l'ordre du déficit** :
-  la 3LP sur `cuda-sieve` rendrait le problème deux fois *pire*, pas meilleur.
+La pénalité de la 3LP n'est pas une propriété de `cuda-sieve` : c'est le coût de
+l'**ECM** sur le côté à trois grands premiers, et il est intrinsèque à la 3LP sur
+GPU. Un cribleur hybride rapide comme GLAS paierait très probablement la même
+pénalité relative. Or les mesures donnent :
 
-Il n'existe donc, dans tout ce qui est disponible ici, aucune combinaison
-cribleur × régime qui produise 441 M de relations en 12 000 s. Le dossier est
-clos **par épuisement mesuré de l'espace des solutions**, et non plus par une
-prémisse non vérifiée.
+```
+3LP dans le même moteur :  rel/s ×0,57 à ×0,80
+```
+
+Appliqué à la vitesse de GLAS (22 194 rel/s), un hybride donnerait
+**12 650 à 17 755 rel/s**. Pour un besoin de 200 M — l'hypothèse la plus
+favorable, non mesurée — cela fait **11 300 à 15 800 s** de crible, avant
+polyselect et algèbre linéaire. C'est-à-dire : entre « ça tient tout juste » et
+« c'est encore dehors ».
+
+Autrement dit, l'hybride n'est pas *exclu*, il est **non justifié** : il
+demanderait trois choses non démontrées — que GLAS gagne la 3LP, que la pénalité
+ECM ne soit pas pire chez lui, et que le besoin réel soit 200 M et non 300 M.
+Un projet de plusieurs semaines ne se lance pas sur trois prémisses dont deux
+sont contredites par les seules mesures disponibles.
+
+Ce qui est en revanche solidement établi :
+
+- **3LP n'apporte que +25 % de relations par q**, pas les 2,2× espérés. Le
+  facteur 2,2 venait d'un modèle de besoin (199 M vs 441 M) jamais mesuré, que
+  CADO contredit.
+- **Le seul cribleur qui sait faire la 3LP est 2,3× plus lent** que celui qui ne
+  sait pas la faire, à paramètres identiques.
+- Il n'existe donc, dans tout ce qui est disponible ici, **aucune combinaison
+  cribleur × régime** qui produise 441 M de relations en 12 000 s.
+
+Le dossier est clos par **épuisement mesuré de l'espace des solutions**, et non
+plus par une prémisse non vérifiée.
 
 ### 16.7 Ce qu'il faudrait, en une ligne
 
-Un cribleur qui ait **la vitesse de GLAS et la 3LP de `cuda-sieve`**. Les deux
-existent séparément ; leur intersection n'existe pas. C'est un projet de
-développement, pas un réglage — et c'est la seule formulation honnête qui reste.
+Non pas « la vitesse de GLAS avec la 3LP de `cuda-sieve` » — la 3LP coûte ce
+qu'elle coûte dans les deux cas. Il faudrait une **cofactorisation ECM
+suffisamment économe pour que la 3LP soit rentable**, ce qui est un problème
+d'algorithmique (choix des courbes, stage 2 partagé, tri des candidats), pas de
+débit de crible. Rien dans ces mesures ne dit que ce soit atteignable.
 
 ### 16.8 Fichiers
 

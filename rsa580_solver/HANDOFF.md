@@ -1485,3 +1485,85 @@ variables d'environnement du conteneur (`env=`) plutôt qu'en `ENV` d'image
 
 
 
+
+---
+
+## 21. Probe 3LP sur `cuda-sieve` (2026-11-02) — voie fermée
+
+### 21.1 Contexte
+
+Le §20 concluait « hors de portée de cette chaîne ». La seule hypothèse non
+testée restait : un cribleur GPU capable de 3LP. `cuda-sieve`
+(github.com/kyleaskine/cuda-sieve, CC0, commit db85a39) en est un, et ses
+binaires `bench` / `cofac_cpu` / `fbgen_gpu` sont dans le zip de la solution
+530 bits (`badf0faf`).
+
+### 21.2 Mesure
+
+`bench --pipeline --cofactor --fill-concurrent`, `logI 15` / `J 16384` (même
+aire que `A 29`), `--sq-side 1`, polynôme c175 du dépôt. 3 régimes × 4 bandes
+(2,2 M / 12 M / 30 M / 60 M), 4 000 q de large. **2 min 45, ~0,3 $.**
+
+| régime | `lim` | `lpb` | `mfb` | rel/s à q=2,2 M | à q=60 M |
+|---|---|---|---|---|---|
+| `ctl2lp` | 100M/150M | 32/33 | 62/64 | **11 223** | 5 701 |
+| `alg3lp` | 100M/150M | 32/33 | 62/**90** | 6 428 | 4 539 |
+| `cado` | 48,1M/67,6M | 30/31 | 60/90 | 2 585 | 1 590 |
+
+`ms/q` est plat en q (22,8 sur toute la plage) : le coût est l'aire criblée, pas
+la position. Le rendement décroît en `×0,51` de 2,2 M à 60 M dans les trois
+régimes.
+
+### 21.3 Deux résultats
+
+**La 3LP est un net recul.** `mfb1` 64→90 : `rel/q ×1,23–1,28`, `ms/q ×1,61–2,15`,
+donc **`rel/s ×0,57–0,80`**. Le côté 3LP passe de rho à ECM (`B1=200, B2=6000,
+12 courbes`) : c'est le coût, et il est intrinsèque au régime, pas au cribleur.
+
+**`cuda-sieve` est 2,3× plus lent que GLAS à c175.** À paramètres identiques,
+même polynôme, même GPU : 118 M en 12 000 s contre **270 M** pour GLAS (mesuré
+§20). Son `ms/q` (22,8) est du même ordre qu'à c160 (24,1) malgré +15 bits :
+écart d'implémentation, pas de géométrie.
+
+### 21.4 Bilan des quatre combinaisons
+
+| chaîne | besoin | produit dans le budget | déficit |
+|---|---|---|---|
+| GLAS 2LP | 441 M | 304 M (projeté §20) | **1,45×** |
+| `cuda-sieve` 2LP | 441 M | 118 M | 3,7× |
+| `cuda-sieve` 3LP | ~300 M (CADO) | 75 M | 4,0× |
+| `cuda-sieve` 3LP petite FB | ? | 29 M | ≥ 6× |
+
+Déficit = besoin ÷ ce que 14 400 s permettent de produire. **Ne pas** utiliser
+441/270 = 1,63× (c'est ce que le run arrêté à 12 160 s avait produit, pas ce que
+le budget autorisait).
+
+### 21.5 Ce que ça ferme, et ce que ça n'autorise pas à conclure
+
+Fermé : toute combinaison cribleur × régime disponible ici.
+
+**Non justifié** (et non « exclu ») : un cribleur hybride « vitesse de GLAS +
+3LP ». La pénalité ECM étant intrinsèque, un tel cribleur donnerait
+12 650–17 755 rel/s, soit 11 300–15 800 s pour un besoin de 200 M — entre
+« tout juste » et « encore dehors ». Il faudrait trois prémisses non démontrées,
+dont deux contredites par les mesures.
+
+Ce qu'il faudrait réellement : une **cofactorisation ECM assez économe pour
+rendre la 3LP rentable**. C'est de l'algorithmique (sélection des courbes, stage 2
+partagé, tri des candidats), pas du débit de crible.
+
+### 21.6 Reproductibilité
+
+`modal_probe_3lp.py` + `probe_3lp.sh` + `probe_3lp_analyze.py` à la racine du
+dépôt ; résultats bruts dans `probe_3lp_result_20261102_200550/` (12 logs
+`bench`, `summary.tsv`, `analysis.txt`).
+
+```bash
+CS_LOCAL='…/badf0faf/cuda-sieve' POLY_LOCAL='…/poly_P.txt' \
+env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy \
+  python -m modal run ./modal_probe_3lp.py
+```
+
+Réserve : le probe tourne en `--cofactor` (ECM dans la boucle GPU), alors que la
+production du 530 utilisait `--candidates` + `cofac_cpu` (−7 % de `ms/q` à c160).
+Écart réel, mais de quelques ms/q sur ~23 — il ne change pas la conclusion.

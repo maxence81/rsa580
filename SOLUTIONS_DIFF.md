@@ -146,15 +146,24 @@ Probe de 2 min 45 sur le polynôme c175, trois régimes × quatre bandes de q
 
 - **3LP n'apporte que +23 à +28 % de relations par q**, pour **+61 à +115 % de
   temps** : `rel/s` tombe à **0,57–0,80×** celui du 2LP. C'est un recul.
-- **`cuda-sieve` est ~2,5× plus lent que GLAS à c175** à paramètres identiques :
-  118 M de relations en 12 000 s contre 270 M mesurés pour GLAS.
+- **`cuda-sieve` est 2,3× plus lent que GLAS à c175** à paramètres identiques :
+  **118 M** de relations sur le même budget de 12 000 s, contre **270 M**
+  mesurés pour GLAS.
 - Bilan : 75 M produits en 3LP contre ~300 M nécessaires → **4× de déficit**.
 
-Autrement dit, la seule chaîne capable de 3LP est aussi celle qui est trop lente,
-et le produit des deux facteurs (2,5 ÷ 1,25 ≈ 2,0) est du même ordre que le
-déficit à combler : la 3LP sur `cuda-sieve` rendrait le problème **deux fois
-pire**. Il faudrait un cribleur ayant la vitesse de GLAS *et* la 3LP de
-`cuda-sieve` — les deux existent séparément, leur intersection non.
+Autrement dit, la seule chaîne capable de 3LP est aussi celle qui est trop lente.
+
+**Et le projet « hybride » n'est pas justifié.** La pénalité de la 3LP n'est pas
+une propriété de `cuda-sieve` : c'est le coût de l'**ECM** sur le côté à trois
+grands premiers, intrinsèque au régime. Un cribleur rapide comme GLAS paierait
+très probablement la même pénalité relative : à `rel/s ×0,57–0,80`, il donnerait
+12 650–17 755 rel/s, soit 11 300–15 800 s pour un besoin de 200 M — entre
+« tout juste » et « encore dehors », sur trois prémisses dont deux sont
+contredites par les mesures. Non exclu, mais non justifié.
+
+Ce qu'il faudrait n'est donc pas plus de débit de crible, mais une
+**cofactorisation ECM assez économe pour rendre la 3LP rentable** : problème
+d'algorithmique, pas de réglage.
 
 ---
 

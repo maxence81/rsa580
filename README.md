@@ -1,5 +1,11 @@
 # RSA-580 / Enigma Subnet 63 — dépôt de reprise
 
+**Dépôt privé : <https://github.com/maxence81/rsa580>**
+
+```bash
+git clone https://github.com/maxence81/rsa580.git enigma_rsa
+```
+
 Factorisation d'un semi-premier **580 bits** (~175 chiffres, `c175`) par GNFS,
 sous la contrainte dure de **14 400 s** (4 h) du validateur Enigma SN63, sur
 RTX PRO 6000 96 Go / 24 vCPU / 85 Go RAM, `--network none`, `--read-only`,

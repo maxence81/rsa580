@@ -30,6 +30,7 @@ mesure.
 12. [McGuire-Robinson — évalué, écarté](#mcguire)
 13. [Phase 9 — Le dernier levier (nombre de GPU) et clôture définitive](#phase-9)
 14. [Phase 10 — Le run qui tranche : mesure directe du profil 560 sur c175](#phase-10)
+15. [Phase 11 — Les solutions des paliers précédents rouvrent le dossier](#phase-11)
 
 ---
 
@@ -984,6 +985,80 @@ risque d'échec est total).
 > **Note d'exécution** : ajouter des clés à `ENV_EXACT` dans `modal_rsa580.py` a
 > suffi à invalider le cache d'image (le runner émet un `ENV` par surcharge), donc
 > ~40 min de recompilation CADO. À corriger avant tout run futur.**
+
+---
+
+<a id="phase-11"></a>
+## 15. Phase 11 — Les solutions des paliers précédents rouvrent le dossier (02/11)
+
+### 15.1 Ce qui a été fait
+
+Les six zips « Download Solution » (440 → 530) ont été extraits et comparés.
+Le détail est dans **`SOLUTIONS_DIFF.md`**. Résumé de la chronologie :
+
+- **≤ 440** : pas de GNFS (trial division + rho + yafu SIQS).
+- **460 → 512** : cribleur maison `gpu_loop`, dont le source passe de 43 Ko à
+  222 Ko et le coût de 17 à **5,0 ms/lattice**.
+- **530** : **`gpu_loop` est abandonné** au profit de `cuda-sieve`, un projet
+  **public CC0**. Run complet en **14 368,7 s** — 31 s de marge.
+- **560 : absent du lot.**
+
+### 15.2 Pourquoi c'est un problème pour le §13 et le §14
+
+Le dossier a été clos deux fois sur la même phrase, écrite au §13.7 puis répétée
+au §14.6 :
+
+> « un cribleur GPU capable de 3LP […] c'est un autre binaire, pas un patch.
+> Rien de tel n'est disponible ici. »
+
+C'était vrai pour GLAS, et faux tout court. `cuda-sieve` gère **trois grands
+premiers par côté** (`lpb ≤ 64`), choisit **rho pour un côté 2LP et ECM pour un
+côté 3LP automatiquement**, cofactorise sur GPU, et tourne sur `sm_120`. Ses
+binaires `bench`, `cofac_cpu`, `fbgen_gpu` sont **dans le zip du 530**, liés
+statiquement au runtime CUDA (seule dépendance : `libcuda.so.1`).
+
+### 15.3 Ce qui reste vrai, et ce qui tombe
+
+**Reste vrai** : la chaîne GLAS 2LP est condamnée. Le §14 l'a mesuré —
+269,9 M relations à 12 160 s, 304 M disponibles pour 441 M requis. Aucun
+réglage ne comble 1,45×.
+
+**Tombe** : « le 580 est hors de portée, point ». Ce qui est mesuré, c'est
+qu'**une** chaîne ne suffit pas. La chaîne qui pourrait suffire — `cuda-sieve` en
+3LP — n'a jamais été lancée ici. Le §14.6 disait « rien ne justifie
+l'investissement » : c'était fondé sur un coût de plusieurs semaines. Le coût réel
+d'un premier test est de quelques minutes.
+
+### 15.4 L'arithmétique du saut
+
+| | c160 (530 bits) | c175 (580 bits) |
+|---|---|---|
+| relations nécessaires | 160 M (sonde mesurée) | 441 M en 2LP / **199 M en 3LP** |
+| coût par q | 24,1 ms/q | inconnu |
+| temps total | 14 368,7 s | inconnu |
+
+Le besoin est multiplié par 2,76× pour 50 bits, alors que le 530 n'avait que 31 s
+de marge. **En 2LP, c'est perdu d'avance** — c'est notre §14. La 3LP divise le
+besoin par ~2,2 : `199 M / 22 000 rel/s ≈ 9 000 s`. Tout dépend de deux nombres
+inconnus à c175 en 3LP : **relations par q** et **ms par q**.
+
+### 15.5 Le prochain jalon
+
+Lancer `bench` sur notre polynôme c175 en mode 3LP, sur une bande courte, et lire
+`ms/q`, `rel/q` et le taux de rejet ECM. Coût < 1 $, quelques minutes.
+
+| résultat | conséquence |
+|---|---|
+| ≥ 22 000 rel/s | 199 M tient en ~9 000 s → le 580 redevient jouable |
+| 12 000–22 000 rel/s | marginal, il faut rogner ailleurs |
+| < 12 000 rel/s | dossier réellement clos, avec le bon outil mesuré |
+
+### 15.6 Réserve
+
+Le **560 manque** au lot. Si sa chaîne utilise déjà `cuda-sieve` en 3LP, le 580
+est peut-être à portée d'un changement de paramètres ; si elle a buté sur ce qu'on
+va buter, la mesure le dira aussi. Dans les deux cas, c'est la même expérience qui
+répond.
 
 
 

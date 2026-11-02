@@ -11,12 +11,14 @@ sous la contrainte dure de **14 400 s** (4 h) du validateur Enigma SN63, sur
 RTX PRO 6000 96 Go / 24 vCPU / 85 Go RAM, `--network none`, `--read-only`,
 `/tmp` en tmpfs 10 Go.
 
-**Statut : non résolu, hors de portée — mesuré, plus estimé.** Aucune soumission.
-Tous les leviers — réglages, polynôme, 3LP, nombre de GPU — sont fermés ou
-mesurés. Un run de 12 160 s sur la chaîne gagnante du 560 appliquée au 580
-(§14 du journal) donne **269,9 M relations à 12 160 s, quand le budget n'en
-autorise que ~304 M pour un besoin de 441 M** : déficit **1,45×** en relations,
-total projeté **23 244–23 942 s** (+61 à +66 %).
+**Statut : non résolu. Le verdict « hors de portée » est ROUVERT (2026-11-02).**
+La chaîne GLAS 2LP est bien condamnée par la mesure (§6.2 : 23 244–23 942 s pour
+14 400 s). Mais le dossier avait été clos sur la prémisse « aucun cribleur GPU
+capable de 3LP n'est disponible » — **cette prémisse est fausse** : `cuda-sieve`
+est domaine public (CC0), gère la 3LP des deux côtés avec rho/ECM automatique,
+tourne sur sm_120, et **ses binaires sont dans le zip de la solution 530 bits**.
+Voir `SOLUTIONS_DIFF.md` §2. Le prochain jalon est une mesure de débit 3LP à
+c175, pas un chantier de plusieurs semaines.
 
 ---
 

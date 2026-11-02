@@ -1,0 +1,31 @@
+== ctl2lp q=30000000 rc=0 wall=7.2s rel_lines=34921
+      joint accept + compact            0.010 ms
+      record candidate factorisations    0.130 ms
+      = device total                    7.390 ms
+      host: small-prime tables          1.640 ms
+      host: readback of candidates      0.000 ms
+      host: unaccounted                -1.527 ms
+    join and emit                        0.00 ms
+    cofactorisation, in-loop flushes     0.02 ms
+    unaccounted                         -1.58 ms
+  GPU-accounted / wall (excl cofac)     0.990
+  two-sided primitive survivors/q     15000.9
+  cofactorisation candidates/q         205.40
+  COMPLETE RELATIONS/q                 40.769
+  total relations                        8806
+  total candidates                      44366
+
+  --- cofactorisation, cross-q queue ---
+  rational queue                         0.64 ms
+  algebraic queue                        0.98 ms
+  readback + emit of relations          0.250 ms
+    = device time per q                  1.88 ms
+  wall: in-loop flushes                  0.02 ms
+  wall: final flush after the band       1.88 ms
+  records enqueued                      53172  (of which 8806 needed no splitting)
+    side 0: split / dead / stuck        45072 / 8100 / 0
+    side 1: split / dead / stuck        37610 / 15562 / 0
+  ALL RELATIONS/q                      161.67
+    of which, from cofactorisation     120.90
+  total relations                       34921
+  wall clock per q, COMPLETE            24.69 ms

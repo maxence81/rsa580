@@ -1,0 +1,54 @@
+
+Assumed non-sieve overhead 2400s -> sieve budget 12000s of 14400s.  NEED values are ASSUMPTIONS, not measurements.
+
+=== regime ctl2lp  lpb 32/33  mfb 62/64
+         q0     nq      rel    rel/q     ms/q  ms/q(ext)    rel/s   rc  skip
+    2200000    248    63403    255.7     22.8       32.7    11223    0     0
+   12000000    222    44267    199.4     22.6       33.8     8835    0     0
+   30000000    216    34921    161.7     22.8       33.3     7088    0     0
+   60000000    208    26860    129.1     22.6       33.7     5701    0     0
+  yield decay: rel/q 255.7 @q=2.2e+06 -> 129.1 @q=6e+07 (0.51x)
+   NEED(M)   sieve s    rel/s     q_end   total s  verdict
+       200     21617     9252  1.74e+07     24017  over by 67%
+       250     27990     8932  2.21e+07     30390  over by 111%
+       300     34711     8643  2.72e+07     37111  over by 158%
+  break-even: this regime can afford at most ~118M raw relations
+
+=== regime alg3lp  lpb 32/33  mfb 62/90
+         q0     nq      rel    rel/q     ms/q  ms/q(ext)    rel/s   rc  skip
+    2200000    248    78081    314.8     49.0       57.7     6428    0     0
+   12000000    222    55436    249.7     42.2       52.7     5916    0     0
+   30000000    216    44315    205.2     38.4       48.6     5339    0     0
+   60000000    208    34442    165.6     36.5       48.1     4539    0     0
+  yield decay: rel/q 314.8 @q=2.2e+06 -> 165.6 @q=6e+07 (0.53x)
+   NEED(M)   sieve s    rel/s     q_end   total s  verdict
+       200     32917     6076  1.39e+07     35317  over by 145%
+       250     41616     6007  1.74e+07     44016  over by 206%
+       300     50600     5929  2.12e+07     53000  over by 268%
+  break-even: this regime can afford at most ~75M raw relations
+
+=== regime cado  lpb 30/31  mfb 60/90
+         q0     nq      rel    rel/q     ms/q  ms/q(ext)    rel/s   rc  skip
+    2200000    248    20290     81.8     31.6       37.5     2585    0     0
+   12000000    222    14313     64.5     28.5       35.1     2261    0     0
+   30000000    216    11292     52.3     27.4       33.3     1910    0     0
+   60000000    208     8547     41.1     25.9       32.7     1590    0     0
+  yield decay: rel/q 81.8 @q=2.2e+06 -> 41.1 @q=6e+07 (0.50x)
+   NEED(M)   sieve s    rel/s     q_end   total s  verdict
+       200    103698     1929   6.7e+07    106098  over by 637%  [EXTRAP]
+       250    138871     1800  9.18e+07    141271  over by 881%  [EXTRAP]
+       300    179393     1672  1.21e+08    181793  over by 1162%  [EXTRAP]
+  break-even: this regime can afford at most ~29M raw relations
+
+=== 3LP effect: alg3lp (mfb1 90) vs ctl2lp (mfb1 64)
+         q0   rel/q A   rel/q B      x   ms/q A   ms/q B      x  rel/s x
+    2200000     255.7     314.8   1.23    22.78    48.98   2.15     0.57
+   12000000     199.4     249.7   1.25    22.57    42.21   1.87     0.67
+   30000000     161.7     205.2   1.27    22.81    38.43   1.68     0.75
+   60000000     129.1     165.6   1.28    22.65    36.48   1.61     0.80
+
+Decision rule, fixed BEFORE measuring:
+  FITS at NEED=250M            -> worth a ~100M-relation run to read the real purge curve
+  FITS only at NEED=200M       -> marginal, needs a second lever
+  does not fit at NEED=200M    -> the 3LP route is closed for this siever
+Reminder: bottom-of-range bands over-state yield; the extrapolated tail is the weak part.

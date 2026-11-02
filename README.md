@@ -11,16 +11,23 @@ sous la contrainte dure de **14 400 s** (4 h) du validateur Enigma SN63, sur
 RTX PRO 6000 96 Go / 24 vCPU / 85 Go RAM, `--network none`, `--read-only`,
 `/tmp` en tmpfs 10 Go.
 
-**Statut : non résolu. Le verdict « hors de portée » est ROUVERT (2026-11-02).**
-La chaîne GLAS 2LP — celle du 560, présente ici sous `rsa560_solver/` — est bien
-condamnée par la mesure (§6.2 : 23 244–23 942 s pour 14 400 s). Mais le dossier
-avait été clos sur la prémisse « aucun cribleur GPU capable de 3LP n'est
-disponible » — **cette prémisse est fausse** : `cuda-sieve` est domaine public
-(CC0), gère la 3LP des deux côtés avec rho/ECM automatique, tourne sur sm_120, et
-**ses binaires sont dans le zip de la solution 530 bits**. Voir `SOLUTIONS_DIFF.md`.
-Deux voies, désormais nommées : **A** rester sur GLAS 2LP (mesuré insuffisant),
-**B** passer en 3LP sur GPU (jamais mesuré à c175). Le prochain jalon est une
-mesure de débit 3LP, pas un chantier de plusieurs semaines.
+**Statut : non résolu, hors de portée — clos par épuisement mesuré (2026-11-02).**
+Quatre combinaisons cribleur × régime ont été mesurées, aucune ne passe :
+
+| chaîne | besoin | produit dans le budget | déficit |
+|---|---|---|---|
+| **GLAS 2LP** (celle du 560) | 441 M | **270 M** (mesuré) | **1,63×** |
+| `cuda-sieve` 2LP | 441 M | 118 M | 3,7× |
+| `cuda-sieve` 3LP | ~300 M | 75 M | 4,0× |
+| `cuda-sieve` 3LP petite FB | ? | 29 M | ≥ 6× |
+
+Deux résultats qui closent le débat ouvert au §15 : la **3LP n'apporte que
++25 %** de relations par q (pas les 2,2× espérés) pour **2× le coût** — c'est un
+net recul, `rel/s` tombe à 0,57–0,80× ; et **`cuda-sieve` est ~2,5× plus lent que
+GLAS à c175** à paramètres identiques. Le seul cribleur qui sait faire la 3LP est
+donc celui qui est trop lent. Voir `JOURNAL §16` et `SOLUTIONS_DIFF.md`.
+Il faudrait un cribleur qui ait la vitesse de GLAS **et** la 3LP de `cuda-sieve` :
+projet de développement, pas réglage.
 
 ---
 

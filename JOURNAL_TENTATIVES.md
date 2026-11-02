@@ -31,6 +31,7 @@ mesure.
 13. [Phase 9 — Le dernier levier (nombre de GPU) et clôture définitive](#phase-9)
 14. [Phase 10 — Le run qui tranche : mesure directe du profil 560 sur c175](#phase-10)
 15. [Phase 11 — Les solutions des paliers précédents rouvrent le dossier](#phase-11)
+16. [Phase 12 — Le probe 3LP sur cuda-sieve : la voie B est fermée](#phase-12)
 
 ---
 
@@ -1084,3 +1085,115 @@ palier au-delà de c160**, et c'est précisément ce que le probe doit établir.
 
 
 
+
+---
+
+<a id="phase-12"></a>
+## 16. Phase 12 — Le probe 3LP sur `cuda-sieve` : la voie B est fermée (02/11)
+
+### 16.1 Ce qui a été mesuré
+
+`bench` de `cuda-sieve` (binaires du zip du 530), sur **notre polynôme c175**,
+trois régimes × quatre bandes de q (2,2 M / 12 M / 30 M / 60 M), 4 000 q de large,
+`logI 15` / `J 16384` (même aire que notre `A 29`), `--sq-side 1`,
+`--pipeline --cofactor`. Durée totale : **2 min 45**, coût ~0,3 $.
+
+| régime | `lim` | `lpb` | `mfb` | rôle |
+|---|---|---|---|---|
+| `ctl2lp` | 100M/150M | 32/33 | 62/64 | **notre config GLAS exacte** — contrôle |
+| `alg3lp` | 100M/150M | 32/33 | 62/**90** | même chose + 3LP côté algébrique |
+| `cado` | 48,1M/67,6M | 30/31 | 60/90 | paramètres CADO du c175 (petite FB) |
+
+### 16.2 Résultats
+
+```
+régime    q=2,2M                q=12M                 q=30M                q=60M
+          rel/q  ms/q  rel/s     rel/q  ms/q  rel/s    rel/q  ms/q  rel/s    rel/q  ms/q  rel/s
+ctl2lp    255,7  22,8  11 223    199,4  22,6   8 835    161,7  22,8   7 088    129,1  22,7   5 701
+alg3lp    314,8  49,0   6 428    249,7  42,2   5 916    205,2  38,4   5 339    165,6  36,5   4 539
+cado       81,8  31,6   2 585     64,5  28,5   2 261     52,3  27,4   1 910     41,1  25,9   1 590
+```
+
+Décroissance du rendement : **×0,50 à ×0,53** de q=2,2 M à q=60 M, identique
+dans les trois régimes. `ms/q` est **plat** en q — le coût est l'aire criblée,
+pas la position dans la plage.
+
+### 16.3 La 3LP est un **net recul**
+
+| | rel/q | ms/q | **rel/s** |
+|---|---|---|---|
+| q=2,2 M | ×1,23 | ×2,15 | **×0,57** |
+| q=12 M | ×1,25 | ×1,87 | **×0,67** |
+| q=30 M | ×1,27 | ×1,68 | **×0,75** |
+| q=60 M | ×1,28 | ×1,61 | **×0,80** |
+
+Passer `mfb1` de 64 à 90 achète **+23 à +28 % de relations par q** et coûte
+**+61 à +115 % de temps**. Le bilan est négatif partout, et il s'aggrave en
+début de plage — c'est-à-dire là où on crible le plus.
+
+Mécanisme : le côté 3LP passe de rho à **ECM** (`B1=200, B2=6000, 12 courbes`,
+lu dans le log). C'est ce qui coûte, et c'est cohérent avec la documentation du
+projet (« ECM wins 2-4× at 3LP » — mais seulement face à rho, pas face à une
+absence de cofactorisation).
+
+### 16.4 La comparaison qui tranche : `cuda-sieve` contre GLAS
+
+À **paramètres identiques** (`ctl2lp`), sur le **même polynôme**, le **même GPU** :
+
+| | relations en ~12 000 s | rel/s moyen |
+|---|---|---|
+| **GLAS** (mesuré §14, q 2,2–17,2 M) | **269,9 M** | **22 194** |
+| **`cuda-sieve`** (projeté, même plage) | **118 M** | **~8 600** |
+
+**GLAS est ~2,5× plus rapide que `cuda-sieve` à c175.** Le cribleur qu'on avait
+déjà est le meilleur des deux, et de loin.
+
+Ce n'est pas un artefact de réglage : `ms/q` de `cuda-sieve` (22,8) est du même
+ordre qu'à c160 (24,1) alors que la taille de N a augmenté de 15 bits — sa
+géométrie n'est pas le problème. C'est bien un écart d'implémentation.
+
+### 16.5 Verdict : quatre combinaisons, aucune ne passe
+
+| chaîne | besoin | produit dans le budget | déficit |
+|---|---|---|---|
+| GLAS 2LP | 441 M | **270 M** (mesuré) | **1,63×** |
+| `cuda-sieve` 2LP | 441 M | 118 M (projeté) | 3,7× |
+| `cuda-sieve` 3LP | ~300 M (estimation CADO) | 75 M (projeté) | 4,0× |
+| `cuda-sieve` petite FB 3LP | ? | 29 M (projeté) | ≥ 6× |
+
+**La voie B est fermée par la mesure**, et pour deux raisons indépendantes :
+`cuda-sieve` est trop lent à c175, et la 3LP n'apporte pas le facteur espéré.
+
+Le pari « 199 M en 3LP » ne tenait déjà pas (CADO vise 290–315 M à c165–c170 en
+3LP), mais même en l'acceptant, 199 M contre 75 M produits laisse un déficit de
+2,65×.
+
+### 16.6 Ce que ça clôt définitivement
+
+La question ouverte au §15 était : « `cuda-sieve` en 3LP peut-il combler 1,63× ? »
+La réponse est non, et le raisonnement est maintenant complet :
+
+- **3LP n'apporte que +25 % de rendement**, pas les 2,2× espérés. L'hypothèse
+  d'un facteur 2,2 venait d'un modèle de besoin en relations (199 M vs 441 M)
+  qui n'a jamais été mesuré et que CADO contredit.
+- **Le seul cribleur qui sait faire la 3LP est 2,5× plus lent** que celui qui ne
+  sait pas la faire.
+- Le produit des deux (`2,5 / 1,25 = 2,0`) est **exactement l'ordre du déficit** :
+  la 3LP sur `cuda-sieve` rendrait le problème deux fois *pire*, pas meilleur.
+
+Il n'existe donc, dans tout ce qui est disponible ici, aucune combinaison
+cribleur × régime qui produise 441 M de relations en 12 000 s. Le dossier est
+clos **par épuisement mesuré de l'espace des solutions**, et non plus par une
+prémisse non vérifiée.
+
+### 16.7 Ce qu'il faudrait, en une ligne
+
+Un cribleur qui ait **la vitesse de GLAS et la 3LP de `cuda-sieve`**. Les deux
+existent séparément ; leur intersection n'existe pas. C'est un projet de
+développement, pas un réglage — et c'est la seule formulation honnête qui reste.
+
+### 16.8 Fichiers
+
+`modal_probe_3lp.py`, `probe_3lp.sh`, `probe_3lp_analyze.py`, et les résultats
+bruts dans `probe_3lp_result_20261102_200550/` (12 logs `bench`, `summary.tsv`,
+`analysis.txt`). Reproductible en 3 minutes pour ~0,3 $.

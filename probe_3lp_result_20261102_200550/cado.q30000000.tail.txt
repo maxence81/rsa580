@@ -1,0 +1,31 @@
+== cado q=30000000 rc=0 wall=7.2s rel_lines=11292
+      joint accept + compact            0.010 ms
+      record candidate factorisations    0.150 ms
+      = device total                    7.381 ms
+      host: small-prime tables          1.638 ms
+      host: readback of candidates      0.000 ms
+      host: unaccounted                -1.547 ms
+    join and emit                        0.00 ms
+    cofactorisation, in-loop flushes     5.99 ms
+    unaccounted                         -1.58 ms
+  GPU-accounted / wall (excl cofac)     0.990
+  two-sided primitive survivors/q     78196.7
+  cofactorisation candidates/q        2879.70
+  COMPLETE RELATIONS/q                  9.079
+  total relations                        1961
+  total candidates                     622015
+
+  --- cofactorisation, cross-q queue ---
+  rational queue                         2.66 ms
+  algebraic queue                        4.65 ms
+  readback + emit of relations          0.086 ms
+    = device time per q                  7.39 ms
+  wall: in-loop flushes                  5.99 ms
+  wall: final flush after the band       1.42 ms
+  records enqueued                     623976  (of which 1961 needed no splitting)
+    side 0: split / dead / stuck       435327 / 188649 / 0
+    side 1: split / dead / stuck        12692 / 528377 / 82907
+  ALL RELATIONS/q                       52.28
+    of which, from cofactorisation      43.20
+  total relations                       11292
+  wall clock per q, COMPLETE            28.79 ms

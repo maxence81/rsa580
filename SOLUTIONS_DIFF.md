@@ -137,7 +137,24 @@ Donc les deux voies possibles pour le 580 sont désormais nommées et distinctes
 | voie | cribleur | statut |
 |---|---|---|
 | A — rester sur GLAS 2LP | GLAS + 15 patches | **mesuré insuffisant** : +61 à +66 % |
-| B — passer en 3LP sur GPU | `cuda-sieve` | **jamais mesuré à c175** |
+| B — passer en 3LP sur GPU | `cuda-sieve` | **mesurée et fermée** : voir §2.1 |
+
+### 2.1 La voie B a été mesurée le 2026-11-02 (et elle est pire)
+
+Probe de 2 min 45 sur le polynôme c175, trois régimes × quatre bandes de q
+(détail : `JOURNAL_TENTATIVES.md` §16) :
+
+- **3LP n'apporte que +23 à +28 % de relations par q**, pour **+61 à +115 % de
+  temps** : `rel/s` tombe à **0,57–0,80×** celui du 2LP. C'est un recul.
+- **`cuda-sieve` est ~2,5× plus lent que GLAS à c175** à paramètres identiques :
+  118 M de relations en 12 000 s contre 270 M mesurés pour GLAS.
+- Bilan : 75 M produits en 3LP contre ~300 M nécessaires → **4× de déficit**.
+
+Autrement dit, la seule chaîne capable de 3LP est aussi celle qui est trop lente,
+et le produit des deux facteurs (2,5 ÷ 1,25 ≈ 2,0) est du même ordre que le
+déficit à combler : la 3LP sur `cuda-sieve` rendrait le problème **deux fois
+pire**. Il faudrait un cribleur ayant la vitesse de GLAS *et* la 3LP de
+`cuda-sieve` — les deux existent séparément, leur intersection non.
 
 ---
 

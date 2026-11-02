@@ -1,0 +1,10 @@
+  cofactor width: side 0 3 limbs (96 bits), side 1 3 limbs (96 bits); this build carries 3..3
+  cofactor method: side 0 rho, side 1 rho
+    cofactor queue                 0.15 GB   (92.39 GB free)
+    side 1: factors x cofactor == norm  2427 of 2427  PASS   (most factors 30 of 64)
+    side 0: factors x cofactor == norm  2541 of 2541  PASS   (most factors 17 of 64)
+  cofactor chunk: 68467 records/launch, 1 launch per round over 68467 records (auto)
+    cofactorisation, in-loop flushes     0.02 ms
+  cofactorisation candidates/q         257.09
+  --- cofactorisation, cross-q queue ---
+    of which, from cofactorisation     148.09

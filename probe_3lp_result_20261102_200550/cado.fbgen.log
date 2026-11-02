@@ -1,0 +1,6 @@
+fbgen_gpu: 24% through prime range
+fbgen_gpu: 49% through prime range
+fbgen_gpu: 74% through prime range
+fbgen_gpu: 99% through prime range
+fbgen_gpu: wrote 3988795 exact-format entries through 67600000; 36 exact primes; 0.595 s wall
+fbgen_gpu: complete factor base written to /tmp/probe_out/cado.fb (3988795 entries)

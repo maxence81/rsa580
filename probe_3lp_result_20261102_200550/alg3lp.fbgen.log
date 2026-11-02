@@ -1,0 +1,11 @@
+fbgen_gpu: 11% through prime range
+fbgen_gpu: 22% through prime range
+fbgen_gpu: 33% through prime range
+fbgen_gpu: 44% through prime range
+fbgen_gpu: 55% through prime range
+fbgen_gpu: 67% through prime range
+fbgen_gpu: 78% through prime range
+fbgen_gpu: 89% through prime range
+fbgen_gpu: 99% through prime range
+fbgen_gpu: wrote 8451277 exact-format entries through 150000000; 36 exact primes; 1.065 s wall
+fbgen_gpu: complete factor base written to /tmp/probe_out/alg3lp.fb (8451277 entries)

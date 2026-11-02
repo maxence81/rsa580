@@ -1,0 +1,11 @@
+  cofactor width: side 0 3 limbs (96 bits), side 1 3 limbs (96 bits); this build carries 3..3
+  cofactor queue: ECM B1 = 200, 46 prime powers, B2 = 6000 (194 giant steps), 12 curves per round
+  cofactor method: side 0 rho, side 1 ECM
+    cofactor queue                 0.15 GB   (92.73 GB free)
+    side 1: factors x cofactor == norm  33488 of 33488  PASS   (most factors 32 of 64)
+    side 0: factors x cofactor == norm  14335 of 14335  PASS   (most factors 21 of 64)
+  cofactor chunk: 126971 records/launch, 1 launch per round over 126971 records (auto)
+    cofactorisation, in-loop flushes    10.05 ms
+  cofactorisation candidates/q        4233.91
+  --- cofactorisation, cross-q queue ---
+    of which, from cofactorisation      66.58

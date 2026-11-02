@@ -1,0 +1,31 @@
+== alg3lp q=60000000 rc=0 wall=10.0s rel_lines=34442
+      joint accept + compact            0.010 ms
+      record candidate factorisations    0.182 ms
+      = device total                    8.156 ms
+      host: small-prime tables          1.641 ms
+      host: readback of candidates      0.000 ms
+      host: unaccounted                -1.563 ms
+    join and emit                        0.00 ms
+    cofactorisation, in-loop flushes    12.92 ms
+    unaccounted                         -1.58 ms
+  GPU-accounted / wall (excl cofac)     0.992
+  two-sided primitive survivors/q    126708.9
+  cofactorisation candidates/q        3862.82
+  COMPLETE RELATIONS/q                 32.356
+  total relations                        6730
+  total candidates                     803466
+
+  --- cofactorisation, cross-q queue ---
+  rational queue                         5.87 ms
+  algebraic queue                        8.29 ms
+  readback + emit of relations          0.265 ms
+    = device time per q                 14.43 ms
+  wall: in-loop flushes                 12.92 ms
+  wall: final flush after the band       1.54 ms
+  records enqueued                     810196  (of which 6730 needed no splitting)
+    side 0: split / dead / stuck       686178 / 124018 / 0
+    side 1: split / dead / stuck        36487 / 623324 / 150385
+  ALL RELATIONS/q                      165.59
+    of which, from cofactorisation     133.23
+  total relations                       34442
+  wall clock per q, COMPLETE            38.02 ms

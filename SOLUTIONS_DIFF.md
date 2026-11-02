@@ -109,10 +109,17 @@ Le 560 (c169) est une chaîne **complètement différente** des cinq autres :
 Cognition cado-nfs-public b5ca9c4, siever glas-gpu (GLAS)
 15 patches python sur sieve_core_gpu.cu, sqrt_l00.hpp, chars_pre, purge
 CADO filtering + GPU block Lanczos + CADO sqrt
-lpb 32/33, mfb 63/65 (défauts du Dockerfile), lim 200M/450M (défauts du script)
+lpb 32/33 (Dockerfile : RSA560_LPB0=32, RSA560_LPB1=33)
+mfb 62/64 (défauts de factor_c169.sh:152 — le Dockerfile ne surcharge que lpb)
+lim 200M/450M (défauts de factor_c169.sh:170)
 485 M de relations brutes, N 16,8 M
 14 774 s mesurés en blind GCP
 ```
+
+**Ces paramètres sont exactement ceux du run de mesure du §14 du journal**
+(`lim 200M/450M`, `mfb 62/64`, `lpb 32/33`) — ce qui veut dire que le
+269,9 M à 12 160 s et les 23 244–23 942 s ne sont pas une extrapolation de la
+chaîne du 560 : c'est **la chaîne du 560 elle-même**, appliquée à c175.
 
 C'est **exactement la chaîne que ce dépôt utilise pour le 580**, aux paramètres
 près. Vérifié : `rsa580_solver/` applique les mêmes 15 patches, à une exception

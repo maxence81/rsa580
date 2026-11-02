@@ -1192,6 +1192,131 @@ un seul processus glas, horodatage hôte, échantillonnage toutes les 30 s :
 unité de q, `factor_c175.sh:1561`) ; toujours mesurer des relations par seconde
 horodatées côté hôte, sur ≥ 10 min et plusieurs fenêtres.
 
+---
+
+### 19. Clôture définitive du dossier (2026-11-02)
+
+Le §18 laissait une question ouverte : le 580 coûte ~19 900 s contre 14 400 s
+disponibles, mais un levier de **débit** n'avait jamais été examiné — le nombre
+de GPU. La spécification du validateur le ferme, et un recoupement de chiffres
+referme le reste.
+
+#### 19.1 La spécification du validateur
+
+Documentation officielle, section *Validation Environment* :
+
+| ressource | valeur |
+|---|---|
+| GPU | **NVIDIA RTX PRO 6000, 96 GB VRAM** — un seul, au singulier |
+| CPU | 24 vCPU |
+| RAM | 85 GB |
+| Wall time | 4 hours (conteneur tué à cette limite) |
+| Isolation | aucun réseau, aucun accès à l'hôte au-delà de CPU, GPU, mémoire |
+
+#### 19.2 Le levier multi-GPU est mort par spécification
+
+Il fallait **1,49×** d'agrégat sur le crible (16 818 s → 11 300 s) pour tenir
+dans le budget. Deux verrous :
+
+1. Un seul GPU est alloué. `--gpus all` ne donne que ce que le nœud possède.
+2. La chaîne n'en piloterait qu'un de toute façon — `factor_c175.sh:196` :
+   *« ONE glas process for the whole sieve (FB, CUDA context, device/pinned
+   buffers, strategies initialised once) »*. `nvidia-smi -L` (ligne 541) n'est
+   qu'un test d'existence, jamais un comptage. Aucun chemin ne sharde les
+   bandes q.
+
+**Le test à deux instances glas n'a donc pas été lancé** : il aurait mesuré un
+environnement que le validateur ne fournit pas.
+
+#### 19.3 Le point qui rend le verdict solide : même FB, donc même besoin
+
+`SUBMISSION_INFO.txt` donne la config de production du 560 : `lim 100M/150M`,
+`lpb 32/33` — **identique** au 580 corrigé (§17.2). Or `lim` seul détermine la
+base de facteurs :
+
+```
+FB = π(10⁸) + π(1,5·10⁸) = 5 761 455 + 8 265 987 = 14 027 442 ≈ 14,03 M
+```
+
+Le besoin en relations est donc le **même** pour les deux tailles. Et
+`factor_c175.sh:212` documente le chiffre réel du 560 : *« c169 at lpb 32/33
+(~420M raw relations) »*.
+
+Corollaire important : `420 M / 14,03 M = 29,9`, ce qui **valide la loi de
+complétion `raw ≈ 30 × FB`** sur une vraie production, et non sur un point
+isolé comme au §10. Le chiffrage du 580 n'est donc pas une extrapolation.
+
+Ce qui diffère est le **rendement**, déduit du run *blind GCP* du 560 :
+
+| | 560 | 580 |
+|---|---|---|
+| relations brutes | ~420 M | ~420 M |
+| temps total mesuré | 14 774 s | — |
+| dont polyselect (`PS_MAX`) | ~900 s | ~900 s |
+| dont LA | ~2 200 s | ~2 200 s |
+| **dont crible** | **11 674 s** | **16 818 s** |
+| **débit implicite** | **35 977 rel/s** | **24 973 rel/s** |
+
+Le 580 crible **1,44× plus lentement à réglage identique**. C'est la dépendance
+en N, et aucun paramètre ne la corrige : ce qui augmente le rendement augmente
+aussi le besoin, ou fait exploser `LA ∝ FB²`.
+
+#### 19.4 Budget final
+
+```
+crible      420 M / 24 973 rel/s  = 16 818 s
+polyselect                        =    900 s
+algèbre linéaire                  =  2 200 s
+                                    ─────────
+total                             = 19 918 s
+budget                            = 14 400 s
+dépassement                       =   +38,3 %
+accélération nécessaire           = 1,38× global, ou 1,49× sur le crible
+```
+
+> **Correction du §18.4** : les « ~18 900 s / +31 % » utilisaient 418 M et
+> omettaient le polyselect. Le chiffre juste est **19 918 s / +38,3 %**. La
+> conclusion est renforcée, pas affaiblie.
+
+#### 19.5 Pourquoi 14 774 s ne contredit pas la limite de 14 400 s
+
+Contradiction apparente, levée :
+
+1. **14 774 s n'est pas une soumission validée** — c'est une mesure *blind GCP*
+   (`factor_c169.sh:73`), hors validateur.
+2. **La cible du 560 était ≤ 13 000 s** (`breaking_rsa.py:261-263`,
+   `FULL_RUN_SECS`). 14 774 s est déjà au-dessus de sa propre cible.
+3. **La grâce réelle est ~30 s** : `SOLUTION_CONTAINER_MANAGER_TIMEOUT = 30`
+   (`qbittensor/constants.py:32`), vérifié le 2026-09-11 après un
+   `WALL_TIME_FAILURE`. Le docstring de `hard_wall()` (lignes 244-249) corrige
+   explicitement l'ancienne affirmation « jusqu'à 5 min », qui surestimait la
+   marge d'un facteur ~10.
+
+Conclusion : **la chaîne était déjà marginale sur le 560**, et le 580 est
+strictement plus dur. Aucune marge cachée.
+
+#### 19.6 Verdict
+
+**RSA-580 est hors de portée de cette chaîne, sur cette machine, dans ce
+budget.** Il manque 1,38×, et ce facteur ne peut venir ni d'un réglage (tous
+balayés), ni d'un meilleur polynôme (ropt + sopt déjà actifs), ni d'un second
+GPU (spec), ni de la 3LP (100× trop lent), ni d'un cribleur alternatif
+(`bench`/cuda-sieve retiré le 2026-10-25, `las` CPU à 626 rel/s).
+
+Seul gain réel de la session, adopté : `GLAS_ADJUST_SQUEEZE=3` (+4,8 %), avec
+`GLAS_ADJUST=3` confirmé à 1,434×.
+
+#### 19.7 Conditions de réouverture
+
+1. **Un cribleur GPU qui gère la 3LP** (buffer de survivants ne débordant pas à
+   1,72 M/q) — seule voie à marge confortable, le 3LP divisant le besoin par
+   ~2,5. Nécessite un autre binaire, pas un patch.
+2. **Une machine multi-GPU** — 1,49× suffit ; implémentation : router les bandes
+   q sur N sessions FIFO (`i mod N`), remplacer le test d'existence par un
+   comptage, repli sur un device. Sans regret, mais inutile pour ce challenge.
+3. **Comprendre l'écart de 20 % avec le concurrent sur le 560** — insuffisant
+   même comblé (1,20× < 1,38×). Piste write-up, le code n'étant pas publié.
+
 
 
 

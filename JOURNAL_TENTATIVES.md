@@ -4,7 +4,9 @@
 **Cible** : semi-premier équilibré 580 bits (~175 chiffres, c175)
 **Limite** : 14 400 s (4 h) — confirmée par l'API publique des challenges
 **Machine** : RTX PRO 6000 96 Go VRAM, 24 vCPU, 85 Go RAM, `--network none`, `--read-only`, tmpfs 10 Go
-**Statut final** : non résolu, tous les leviers logiciels identifiés sont fermés
+**Statut final** : non résolu. **Tous** les leviers — logiciels, mathématiques et
+matériels — sont fermés et mesurés. Le déficit est de **1,38×** et aucune voie
+connue ne le comble (§13).
 
 ---
 
@@ -22,6 +24,7 @@
 10. [Verdict et conditions de reprise](#verdict)
 11. [Revue de la littérature (02/11) — tri des sources et piste révélée](#litterature)
 12. [McGuire-Robinson — évalué, écarté](#mcguire)
+13. [Phase 9 — Le dernier levier (nombre de GPU) et clôture définitive](#phase-9)
 
 ---
 
@@ -592,6 +595,169 @@ Face à un déficit de 20-35 % et à un gain spéculatif, ce n'est pas le bon in
 ### 12.5 Ce qui serait le bon investissement
 
 Comprendre pourquoi notre chaîne met 17 339 s sur le 560 là où un concurrent a tenu dans 14 400 s. C'est 20 % d'écart, mesuré, sur un cas **déjà résolu** — donc nécessairement atteignable. Le code n'étant pas publié, la piste est un write-up externe, pas une lecture de source.
+
+---
+
+<a id="phase-9"></a>
+## 13. Phase 9 — Le dernier levier (nombre de GPU) et clôture définitive (02/11)
+
+Cette phase ne contient aucun run : elle ferme le seul levier qui restait ouvert,
+par la **spécification** du validateur et par un recoupement de chiffres.
+
+### 13.1 La spécification du validateur
+
+Documentation officielle du challenge, section *Validation Environment* :
+
+| ressource | valeur |
+|---|---|
+| GPU | **NVIDIA RTX PRO 6000, 96 GB VRAM** — *un seul*, au singulier |
+| CPU | 24 vCPU |
+| RAM | 85 GB |
+| Wall time | 4 hours (conteneur tué à cette limite) |
+| Isolation | aucun réseau, aucun accès aux ressources de l'hôte au-delà de CPU, GPU, mémoire |
+
+### 13.2 Ce que ça ferme : le débit ne peut pas être multiplié
+
+Le crible représente ~85 % du temps total. Il fallait **≥ 1,49×** d'agrégat pour
+ramener les 16 818 s de crible sous les 11 300 s disponibles (§13.3). Un partage
+sur deux devices était la seule façon d'obtenir ce facteur sans toucher aux
+mathématiques.
+
+Deux verrous, tous deux définitifs :
+
+1. **Un seul GPU est alloué.** `--gpus all` dans la commande de run ne donne que
+   ce que le nœud possède ; la spec provisionne *un* RTX PRO 6000.
+2. **La chaîne n'en utiliserait qu'un de toute façon.** `factor_c175.sh:196` :
+   *« ONE glas process for the whole sieve (FB, CUDA context, device/pinned
+   buffers, strategies initialised once) »*. `nvidia-smi -L` n'y sert que de
+   test d'existence (ligne 541), jamais à compter les devices. Aucun chemin de
+   code ne sharde les bandes q sur plusieurs processus.
+
+Le levier multi-GPU est donc mort **par spécification**, et le test que
+j'envisageais (deux instances sur `RTX-PRO-6000:2`) aurait mesuré un
+environnement que le validateur ne fournit pas. Il n'a pas été lancé.
+
+### 13.3 Le vrai chiffrage : le 560 et le 580 ont le **même** besoin en relations
+
+C'est le point qui rend le verdict solide, et il n'avait pas été explicité.
+
+`SUBMISSION_INFO.txt` donne la config de production du 560 : `lim 100M/150M`,
+`lpb 32/33`. C'est **exactement** la config corrigée du 580. Or `lim` seul
+détermine la base de facteurs :
+
+```
+FB = π(10⁸) + π(1,5·10⁸) = 5 761 455 + 8 265 987 = 14 027 442 ≈ 14,03 M
+```
+
+**Identique pour les deux tailles.** Et `factor_c175.sh:212` documente le besoin
+réel du 560 : *« c169 at lpb 32/33 (~420M raw relations) »*. Le 580, à FB égale,
+a donc le **même** besoin : ~420 M relations.
+
+Au passage, cela **valide la loi de complétion** sur une vraie production et non
+sur un point isolé : `420 M / 14,03 M = 29,9 ≈ 30 × FB`. Le `r ≈ 29` du §10
+n'était donc pas une extrapolation fragile — il est confirmé. C'est ce qui
+autorise à chiffrer le 580 sans réserve.
+
+Ce qui change entre 560 et 580 n'est donc **pas le nombre de relations, mais le
+rendement**. Et il se déduit du run blind GCP du 560 :
+
+| | 560 | 580 |
+|---|---|---|
+| relations brutes nécessaires | ~420 M | ~420 M |
+| temps total mesuré | 14 774 s | — |
+| dont polyselect (PS_MAX) | ~900 s | ~900 s |
+| dont algèbre linéaire | ~2 200 s | ~2 200 s |
+| **dont crible** | **11 674 s** | **16 818 s** |
+| **débit implicite** | **35 977 rel/s** | **24 973 rel/s** |
+
+Le 580 crible donc **1,44× plus lentement que le 560 à réglage identique**. C'est
+la pénalité de taille de N — normes plus grandes, moins de valeurs friables par
+q — et elle n'est pas corrigeable par un paramètre : tout paramètre qui
+augmente le rendement augmente aussi le besoin, ou fait exploser l'algèbre
+linéaire (`LA ∝ FB²`).
+
+Chiffrage final du 580 :
+
+```
+crible      420 M / 24 973 rel/s  = 16 818 s
+polyselect                        =    900 s
+algèbre linéaire                  =  2 200 s
+                                    ─────────
+total                             = 19 918 s
+budget                            = 14 400 s
+dépassement                       =   +38,3 %
+accélération nécessaire           = 1,38× global, ou 1,49× sur le crible seul
+```
+
+> **Révision** : le chiffre de « ~31 % au-dessus » du §10 utilisait 418 M et
+> omettait le polyselect. Le chiffrage complet ci-dessus est le bon : **38,3 %**.
+> La conclusion ne change pas, l'écart est simplement plus franc.
+
+### 13.4 Pourquoi le 14 774 s ne contredit pas la limite de 14 400 s
+
+Cette contradiction apparente traînait dans mes notes ; elle est levée :
+
+1. **14 774 s n'est pas une soumission validée.** C'est une mesure *blind GCP*
+   (`gpu/key1m.env`, commentaire `factor_c169.sh:73`) — un run de développement
+   sur une clé dont la factorisation était inconnue, hors validateur.
+2. **Le 560 était budgété à ≤ 13 000 s**, pas 14 400 (`breaking_rsa.py:261-263`,
+   `FULL_RUN_SECS`). Le 14 774 s est donc déjà **au-dessus** de sa propre cible.
+3. **La grâce réelle du validateur est de ~30 s**, pas 5 min :
+   `SOLUTION_CONTAINER_MANAGER_TIMEOUT = 30` (`qbittensor/constants.py:32`),
+   vérifié le 2026-09-11 après un `WALL_TIME_FAILURE`. Le docstring de
+   `hard_wall()` corrige explicitement l'ancienne affirmation « jusqu'à 5 min »,
+   qui surestimait la marge d'un facteur ~10.
+
+Autrement dit : **notre chaîne était déjà marginale sur le 560**, et le 580 est
+strictement plus dur. Il n'y a aucune marge cachée à récupérer.
+
+### 13.5 Tableau de clôture
+
+| levier | statut | preuve |
+|---|---|---|
+| `lim` (48/67 → 135/230) | fermé | 10+ runs, plancher ~15 500–16 000 s de crible |
+| polynôme / MurphyE | fermé | saturé 1,710e-10 vs 1,642e-10 ; ropt + sopt **déjà actifs** (`SOPT_EFF=9`, `SOPT_K=500`) |
+| `ncurves` 8 vs 17 | fermé | −2,5 %, dans le bruit |
+| caps GLAS (margin/surv/hits/fcand) | fermé | OOM CUDA ou 0 relation |
+| `SIEVE_A=30` | fermé | 0 chunk en 44 min |
+| profil de threads (`-t 16` vs `-t 20`) | fermé | ratio **exactement 1,000** |
+| `GLAS_ADJUST` | **gagné** | 1,434× — déjà `=3` par défaut dans le pipeline |
+| `GLAS_ADJUST_SQUEEZE` | **gagné** | +4,8 % — adopté à `=3` le 02/11 |
+| 3LP (`mfb 90/92`) | fermé | **46,5 rel/s**, GPU déborde à chaque q, 199 M rel → ~49 jours |
+| McGuire-Robinson | fermé | accélère l'énumération, pas le filtre à survivants (§12) |
+| **nombre de GPU** | **fermé (spec)** | **1 seul RTX PRO 6000 alloué** ; la chaîne n'en piloterait qu'un |
+| grâce du validateur | fermé | ~30 s, mesuré |
+
+### 13.6 Verdict définitif
+
+**RSA-580 est hors de portée de cette chaîne, sur cette machine, dans ce
+budget.** Il manque 1,38× de temps, et ce facteur ne peut venir :
+
+- ni d'un réglage — tous balayés et mesurés (§13.5) ;
+- ni d'un meilleur polynôme — la recherche est saturée et ropt/sopt tournent déjà ;
+- ni d'un second GPU — la spécification n'en donne qu'un ;
+- ni de la 3LP — 100× trop lent, par débordement du buffer de survivants de GLAS ;
+- ni d'un cribleur alternatif — `bench`/cuda-sieve a été retiré le 2026-10-25 et
+  sa source n'est plus vendored ; `las` CPU tourne à 626 rel/s.
+
+Le seul gain réel de la session est `GLAS_ADJUST_SQUEEZE=3` (+4,8 %), adopté.
+
+### 13.7 Ce qui rouvrirait le dossier
+
+Trois conditions, par ordre de plausibilité :
+
+1. **Un cribleur GPU capable de 3LP** — c'est-à-dire avec un buffer de survivants
+   qui ne déborde pas à 1,72 M par q. Ce n'est pas un réglage de GLAS : c'est un
+   autre binaire. Gain attendu : le régime 3LP divise le besoin en relations par
+   ~2,5, ce qui remettrait le 580 largement sous le budget.
+2. **Une machine à plusieurs GPU** — 1,49× sur le crible suffit. Le code actuel
+   ne sharde pas ; il faudrait router les bandes q sur N sessions FIFO
+   (`i mod N`) et remplacer le test d'existence `nvidia-smi -L` par un comptage.
+   Sans regret : repli sur un device si un seul est visible.
+3. **Comprendre l'écart de 20 % avec le concurrent sur le 560** (§12.5) — piste
+   la plus faible, car même comblée intégralement elle ne donne que 1,20×,
+   contre 1,38× requis.
+
 
 
 

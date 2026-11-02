@@ -11,8 +11,9 @@ sous la contrainte dure de **14 400 s** (4 h) du validateur Enigma SN63, sur
 RTX PRO 6000 96 Go / 24 vCPU / 85 Go RAM, `--network none`, `--read-only`,
 `/tmp` en tmpfs 10 Go.
 
-**Statut : non résolu.** Aucune soumission. Tous les leviers de réglage connus
-sont fermés et mesurés ; il reste une impasse structurelle documentée (§5).
+**Statut : non résolu, et démontré hors de portée.** Aucune soumission. Tous les
+leviers — réglages, polynôme, 3LP, nombre de GPU — sont fermés et mesurés. Le
+déficit est de **1,38×** ; les conditions de réouverture sont en §6.
 
 ---
 
@@ -21,14 +22,19 @@ sont fermés et mesurés ; il reste une impasse structurelle documentée (§5).
 | question | réponse mesurée |
 |---|---|
 | La limite est-elle vraiment 14 400 s ? | **Oui**, dure, par milestone. Confirmé par l'API publique des challenges (`max_solution_runtime = 14400`), tuée par `solution_container_manager.py:1083`. |
-| Le 560 bits a-t-il été résolu dans ce budget ? | **Oui**, par un concurrent (30 soumissions). Notre propre run c169 met 17 339 s → notre chaîne est ~20 % plus lente à réglage comparable. |
-| Combien coûte le 580 en 2LP ? | **~18 900 s** au meilleur point mesuré (`lim 100/150`, 24 973 rel/s : 16 740 s de crible + ~2 200 s de LA), soit **~31 % au-dessus** du budget, filtrage non compté. Les autres régimes ne font pas mieux. |
+| Le 560 bits a-t-il été résolu dans ce budget ? | **Oui**, par un concurrent (30 soumissions). Notre run c169 met 17 339 s et notre mesure *blind GCP* 14 774 s, alors que notre propre cible était ≤ 13 000 s → notre chaîne est marginale **déjà** sur le 560. |
+| Combien coûte le 580 en 2LP ? | **~19 900 s** : 16 818 s de crible (420 M / 24 973 rel/s) + 900 s de polyselect + 2 200 s de LA. Soit **+38,3 %** sur le budget. |
+| Pourquoi 420 M relations, et pas plus ? | Parce que le 560 et le 580 partagent `lim 100M/150M` ⇒ **même base de facteurs** (14,03 M) ⇒ même besoin. `420 M / 14,03 M = 29,9`, ce qui **valide** la loi `raw ≈ 30 × FB` sur une vraie production. |
+| Alors d'où vient l'écart ? | **Du rendement, pas du besoin** : le 580 crible à 24 973 rel/s contre 35 977 pour le 560, soit **1,44× plus lent à réglage identique**. C'est la dépendance en N, non corrigeable par un paramètre. |
 | La 3LP peut-elle sauver la mise ? | **Non.** Mesuré à **46,5 rel/s** contre 4 658 en 2LP : le GPU déborde à chaque q (1,72 M de survivants par q) et retombe sur un repli CPU. 199 M de relations → ~49 jours. |
-| Reste-t-il un réglage ? | **Non.** `lim` (10+ runs), polynôme (saturé), `ncurves` (bruit), caps GLAS (OOM ou 0 relation), `SIEVE_A=30` (rien), 3LP (fermé). |
-| Que faudrait-il ? | **~1,35× le débit** du cribleur, ou un cribleur GPU capable de 3LP. Les deux sont hors de portée en réglage. |
+| Et un second GPU ? | **Non, par spécification.** Le validateur alloue **un seul** RTX PRO 6000 96 Go (`--gpus all` ne donne que ce que le nœud a). Il fallait 1,49× d'agrégat. |
+| Reste-t-il un réglage ? | **Non.** `lim` (10+ runs), polynôme (saturé, ropt+sopt déjà actifs), `ncurves` (bruit), caps GLAS (OOM ou 0 relation), `SIEVE_A=30` (rien), threads (ratio 1,000), 3LP (fermé), GPU (spec). |
+| Que faudrait-il ? | **1,38× le temps total**, ou 1,49× sur le crible seul. Aucune voie disponible ici (§6). |
+| Y a-t-il eu un gain réel ? | **Oui** : `GLAS_ADJUST_SQUEEZE=3` (+4,8 %), adopté, et `GLAS_ADJUST=3` confirmé à 1,434×. |
 
-Le détail chiffré, run par run, est dans `JOURNAL_TENTATIVES.md` (11 sections)
-et `rsa580_solver/HANDOFF.md` (16 sections, dont §16 qui corrige §15).
+Le détail chiffré, run par run, est dans `JOURNAL_TENTATIVES.md` (13 sections,
+§13 = clôture définitive) et `rsa580_solver/HANDOFF.md` (19 sections, dont §16
+qui corrige §15 et §19 qui clôt le dossier).
 
 ---
 
@@ -145,12 +151,18 @@ POLY_B64="$(cat /tmp/polyP_b64.txt)" \
 | levier | essais | résultat |
 |---|---|---|
 | `lim` 48/67 → 135/230 | 10+ runs | plancher ~15 500–16 000 s de crible > budget |
-| polynôme (MurphyE) | 20 vs 40 batches | saturé : 1,710e-10 vs 1,642e-10 (bruit) |
+| polynôme (MurphyE) | 20 vs 40 batches | saturé : 1,710e-10 vs 1,642e-10 (bruit) ; ropt + sopt **déjà actifs** |
 | `ncurves` 8 vs 17 | run K | −2,5 % (bruit) |
 | caps GLAS (margin/surv/hits/fcand) | 4 essais | OOM CUDA, ou 0 relation |
 | `SIEVE_A=30` | 1 essai | 0 chunk en 44 min |
+| profil de threads `-t 16` vs `-t 20` | A/B 180 s ×2 | ratio **exactement 1,000** — aucune marge CPU |
 | 3LP `mfb 90/92` | 4 essais | **46,5 rel/s**, GPU déborde à chaque q |
 | découplage crible/cofactorisation | analyse | ne traite pas le blocage principal (§16.4) |
+| McGuire-Robinson | analyse | accélère l'énumération, pas le filtre à survivants (§12) |
+| **nombre de GPU** | spec | **un seul** RTX PRO 6000 alloué ; la chaîne n'en piloterait qu'un |
+| grâce du validateur | mesure | **~30 s** (`SOLUTION_CONTAINER_MANAGER_TIMEOUT`) |
+| **`GLAS_ADJUST`** | A/B | **gagné** : 1,434× — déjà `=3` par défaut |
+| **`GLAS_ADJUST_SQUEEZE`** | A/B | **gagné** : +4,8 % — adopté à `=3` le 02/11 |
 
 **La 3LP — le seul régime qui créerait de la marge — est fermée par une limite
 structurelle** : avec `mfb=90`, GLAS produit 1,72 M de survivants pour un seul q
@@ -160,23 +172,41 @@ survivants — GLAS est un binaire Cognition patché, pas un projet refondable i
 
 ---
 
-## 6. Pistes encore ouvertes (honnêtement)
+## 6. Ce qui rouvrirait le dossier
 
-1. ~~Comprendre l'écart de débit de ~1,35× avec la chaîne 560~~ — **résolu, et ce
-   n'était pas un défaut.** Mesure longue du 2026-11-02 (901,6 s, horodatage
-   hôte) : le 580 à `lim 100M/150M` fait **24 973 rel/s en moyenne**, 24 117 en
-   état stationnaire, avec un pic de fenêtre à 26 946. Le chiffre de 29 614 du
-   §13 est **réfuté** (jamais atteint). L'écart avec la chaîne 560 s'explique
-   par la **taille de N** : à 560 bits les normes sont plus petites, donc plus
-   de relations par q au même `lim`. Voir `HANDOFF.md` §18.4.
-2. **Recalculer le budget sur le vrai débit.** À 24 973 rel/s,
-   `418 M / 24 973 = 16 740 s` + ~2 200 s de LA = **~18 900 s**, soit **31 %**
-   au-dessus de 14 400 s (et davantage avec la décroissance mesurée, ~−6,2 %
-   par 10 M). Toute projection antérieure basée sur 29 614 rel/s est à jeter.
-3. **Un cribleur GPU qui gère la 3LP.** Aucun n'est disponible ici :
-   `bench`/cuda-sieve a été retiré du Dockerfile le 2026-10-25 et sa source
-   n'est plus vendored ; `las` (CPU) gère la 3LP mais tourne à 626 rel/s à
-   `-t 14` à c160, soit ~50× trop lent.
+Le budget est arrêté (§1). Les seules conditions de réouverture, par ordre de
+plausibilité :
+
+1. **Un cribleur GPU qui gère la 3LP** — c'est-à-dire dont le buffer de
+   survivants ne déborde pas à 1,72 M par q. Ce n'est pas un réglage de GLAS :
+   c'est un autre binaire. C'est la seule voie avec une marge confortable, le
+   régime 3LP divisant le besoin en relations par ~2,5. Rien de tel n'est
+   disponible ici : `bench`/cuda-sieve a été retiré du Dockerfile le 2026-10-25
+   et sa source n'est plus vendored ; `las` (CPU) gère la 3LP mais tourne à
+   626 rel/s à `-t 14` à c160, soit ~50× trop lent.
+2. **Une machine à plusieurs GPU** — 1,49× sur le crible suffit, et le code
+   actuel ne sharde pas (`factor_c175.sh:196`, une seule session glas). Il
+   faudrait router les bandes q sur N sessions FIFO (`i mod N`) et remplacer le
+   test d'existence `nvidia-smi -L` (ligne 541) par un comptage. Sans regret :
+   repli sur un device si un seul est visible. **Inutile pour ce challenge**,
+   dont la spec n'alloue qu'un GPU — mais c'est le seul chemin de débit non
+   mathématique qui reste.
+3. **Comprendre l'écart de 20 % avec le concurrent sur le 560** — piste la plus
+   faible : même comblée intégralement, elle ne donne que 1,20× contre 1,38×
+   requis. Le code du concurrent n'est pas publié (le dépôt officiel s'arrête au
+   500 bits), donc c'est un write-up externe à chercher, pas une source à lire.
+
+### 6.1 Deux points autrefois « ouverts », désormais tranchés
+
+- **L'« écart de 1,35× » avec la chaîne 560** n'était pas un défaut. Mesure
+  longue du 2026-11-02 (901,6 s, horodatage hôte) : **24 973 rel/s** en moyenne,
+  24 117 en régime stationnaire, pic de fenêtre 26 946. Le chiffre de 29 614 du
+  §13 du journal est **réfuté** — jamais atteint. L'écart s'explique par la
+  taille de N : à 560 bits les normes sont plus petites, donc plus de relations
+  par q au même `lim`. Voir `HANDOFF.md` §18.4 et §19.
+- **Le budget est recalculé sur ce débit** : `420 M / 24 973 = 16 818 s` de
+  crible, + 900 s de polyselect + 2 200 s de LA = **19 918 s**, soit **+38,3 %**.
+  Toute projection antérieure basée sur 29 614 rel/s est à jeter.
 
 ---
 

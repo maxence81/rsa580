@@ -1,0 +1,7 @@
+rsa580_solver: RSA-580 (c175) GNFS on one GPU (Cognition glas siever, CADO-NFS filtering, GPU block Lanczos, CADO sqrt).
+repo commit: c00616b84c077199d8133fd8c07e97b072d17d3e  (branch s5 / c175-580)
+CADO-NFS:    cognition-research/cado-nfs-public b5ca9c4fd3e331edc8978f93830f8de1e8dda70c (vendored in third_party/cado-nfs-public)
+build:       docker build -t rsa580 .      (x86_64; CUDA sm_120; network for apt, pip and the nvidia/cuda base images)
+run:         docker run --rm --gpus all --network none --read-only --tmpfs /tmp:rw,noexec,nosuid,size=10g \
+               --memory 85g --cpus 24 --user miner rsa580 <challenge_id> '{"difficulty":580,"num":"<N>","num_bits":580}'
+config:      pipeline_c169/factor_c169.sh defaults under CONTAINER=1, RSA580_LPB1=34, RSA580_LPB0=32, RSA580_MFB1=68, RSA580_MFB0=64

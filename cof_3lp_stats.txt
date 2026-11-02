@@ -1,0 +1,43 @@
+cof_3lp.bin: 4,094,586 candidates
+  side 0: lim=48,000,000 lpb=32 mfb=90 ncurves=17
+  side 1: lim=67,000,000 lpb=33 mfb=92 ncurves=17
+
+side 0 leftover bit-length:
+  min 1  median 84  p90 89  max 90
+  <=2*lpb (64 b) :    416,329   10.2%   facul splits easily
+  <=3*lpb (96 b) :  3,678,257   89.8%   needs 3LP chain
+  > 3*lpb           :          0    0.0%   needs 4LP chain
+  histogram (5-bit buckets):
+      0-  4 b :   0.6% #
+     25- 29 b :   1.2% #
+     30- 34 b :   1.2% #
+     50- 54 b :   0.3% #
+     55- 59 b :   2.1% #
+     60- 64 b :   4.8% ##
+     75- 79 b :  11.3% #####
+     80- 84 b :  29.6% ##############
+     85- 89 b :  39.7% ###################
+     90- 94 b :   9.3% ####
+
+side 1 leftover bit-length:
+  min 1  median 87  p90 92  max 92
+  <=2*lpb (66 b) :    219,532    5.4%   facul splits easily
+  <=3*lpb (99 b) :  3,875,054   94.6%   needs 3LP chain
+  > 3*lpb           :          0    0.0%   needs 4LP chain
+  histogram (5-bit buckets):
+      0-  4 b :   0.1% #
+     25- 29 b :   0.3% #
+     30- 34 b :   0.5% #
+     50- 54 b :   0.1% #
+     55- 59 b :   0.8% #
+     60- 64 b :   2.1% #
+     65- 69 b :   1.5% #
+     75- 79 b :   3.4% #
+     80- 84 b :  23.1% ###########
+     85- 89 b :  36.8% ##################
+     90- 94 b :  31.4% ###############
+
+Interpretation
+  median <= 65 b  -> 3LP should work; if it did not, look at the caps.
+  median >= 85 b  -> facul cost per candidate is the blocker; 3LP is
+                     out of reach with host-side cofactorisation.

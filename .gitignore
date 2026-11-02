@@ -1,0 +1,23 @@
+# --- evidence dump: 131 MB, over GitHub's 100 MB per-file limit ---------------
+# Regenerate with:  python rsa580_solver/tools/cofac_dump_stats.py cof_3lp.bin
+# The analysis is committed as cof_3lp_stats.txt; the raw dump is not.
+cof_3lp.bin
+
+# --- submission zip: byte-identical to rsa560_solver/ (extracted) -------------
+*.zip
+
+# --- python caches -----------------------------------------------------------
+__pycache__/
+*.pyc
+*.pyo
+
+# --- local Modal state and secrets ------------------------------------------
+.modal.toml
+.modal/
+.env
+.env.*
+
+# --- OS noise ----------------------------------------------------------------
+Thumbs.db
+desktop.ini
+.DS_Store

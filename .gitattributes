@@ -1,0 +1,22 @@
+# The validator runs these scripts under Linux in a container: they MUST be LF.
+# Without this, core.autocrlf=true on Windows risks committing CRLF and every
+# .sh would fail with "bad interpreter: /bin/bash^M".
+* text=auto eol=lf
+
+*.sh    text eol=lf
+*.py    text eol=lf
+*.c     text eol=lf
+*.h     text eol=lf
+*.hpp   text eol=lf
+*.cu    text eol=lf
+*.cuh   text eol=lf
+*.patch text eol=lf
+*.md    text eol=lf
+*.txt   text eol=lf
+*.json  text eol=lf
+Dockerfile text eol=lf
+
+# binary evidence / archives
+*.bin  binary
+*.zip  binary
+*.gz   binary

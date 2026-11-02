@@ -1,0 +1,79 @@
+✓ Initialized. View run at 
+https://modal.com/apps/lol810-maxou2/main/ap-h4hBlkVCgz6S1vJOjkaGNu
+Building image im-WQljkMsxkaZm9swDAqA3Xj
+
+=> Step 0: FROM base
+
+=> Step 1: ENTRYPOINT []
+Saving image...
+Image saved, took 674.85ms
+
+Built image im-WQljkMsxkaZm9swDAqA3Xj in 2.00s
+
+
+✓ Created objects.
+├── ✓ Uploaded C:\Users\maxen\enigma_rsa\diag_3lp_cofac.py
+├── ✓ Uploaded C:\Users\maxen\enigma_rsa\rsa580_solver
+└── ✓ Created Function diag.
+=== DIAG 3LP COFACTORISATION ===
+poly_lines         10
+makefb_rc          0
+fb1_bytes          57979329
+glas_rc            124
+relations          11163
+cof_bytes          131026824
+cof_candidates     4094586
+--- relations head ---
+# glas with q0=2200000 q1=2400000
+# side-0 factor base: 2888178 entries
+# side-1 factor base: 3955542 entries
+# factor base cache: wrote /tmp/fb1.cache
+# Startup: 0.23 s fb, 1.31 s gpu, 0.14 s rest
+# Sieving side-1 q=2200013; rho=1095203; a0=2200013; b0=0; a1=1095203; b1=1; J=10942; 1718805 survivors
+-3463944486,5:2,2,2,2,2da09,355a3,12c379,bff9257,c15dcff:3,5,5,7,d,11,1d,2f,161,233,60d,4453,2191cd,de6f49,103a6086d,1331ad723
+-1488400061,19:13,1f,209,293,829,14fb73,6e01ab7,6ab683ef:2,2,2,2,2,2,3,3,5,d,161,2f5,12157,18ccf1,2191cd,ee1845,1dd6a3f7,26ad8773
+29777041457,28:3,3,71,bf,b241b,14047fd,47
+--- glas log tail ---
+back to CPU
+# GPU overflow at q=2200369 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200577 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200621 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200643 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200643 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200643 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200657 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200661 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200673 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200699 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200699 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200699 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200717 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200717 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200727 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200727 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200729 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200763 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200771 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200771 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200777 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200777 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200799 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200811 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200811 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200811 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200813 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200813 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200817 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200817 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200823 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200823 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200823 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200831 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200831 (caps surv=8388608 hits=67108864); falling back to CPU
+# GPU overflow at q=2200841 (caps surv=8388608 hits=67108864); falling back to CPU
+
+DUMP_WRITTEN C:\Users\maxen\enigma_rsa\cof_3lp.bin (4094586 candidates)
+now: python rsa580_solver/tools/cofac_dump_stats.py cof_3lp.bin
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+https://modal.com/apps/lol810-maxou2/main/ap-h4hBlkVCgz6S1vJOjkaGNu

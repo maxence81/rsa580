@@ -991,6 +991,111 @@ Ordre correct si quelqu'un reprend : (1) buffer de survivants, (2) `ncurves` 3LP
 
 Détail complet dans `../JOURNAL_TENTATIVES.md` §11.
 
+### 17. Comparaison avec le solveur 560 du dépôt (2026-11-02)
+
+Le dépôt contient `rsa560_solver/` — l'archive de soumission du 560, qui a
+réellement fonctionné. C'est la référence locale, et elle n'avait jamais été
+comparée ligne à ligne. Trois résultats.
+
+#### 17.1 Les deux pipelines sont quasi identiques
+
+```
+1687  rsa560_solver/pipeline_c169/factor_c169.sh
+1689  rsa580_solver/pipeline_c169/factor_c175.sh
+```
+
+Le diff ne porte que sur la gestion des variables `RSA580_*` (et l'ajout de
+`LPB1=34`). **L'écart de performance ne vient donc pas du code** : c'est un
+problème de réglage ou de polynôme.
+
+#### 17.2 Défaut corrigé : l'image 580 embarquait la pire configuration connue
+
+`Dockerfile:121` disait :
+
+```
+ENV RSA580_LPB1=34 ... RSA580_MFB1=68 RSA580_MFB0=64 RSA580_ALIM=600000000 RSA580_RLIM=250000000
+```
+
+soit `lim 250M/600M` → **FB ≈ 45,2 M de colonnes** → `raw ≈ 29 × FB ≈ 1,31 G`
+→ **~38 700 s** (cf. tableau §9). C'est-à-dire 2,7× le budget : **l'image de
+soumission livrait exactement la configuration qui avait échoué le 31/10.**
+
+Corrigé en :
+
+```
+ENV RSA580_LPB1=33 RSA580_LPB0=32 RSA580_MFB1=66 RSA580_MFB0=64 RSA580_ALIM=150000000 RSA580_RLIM=100000000
+```
+
+soit `lpb 32/33, mfb 64/66, lim 100M/150M, lambda 2.0352/2.0379` — le jeu de
+production **560** documenté (`rsa560_solver/pipeline_c169/README.md:28`,
+mesuré le 2026-10-17) et aussi le meilleur point de notre propre balayage 580
+(FB 14,41 M → 418 M raw → ~14 100 s de crible + ~2 200 s de LA). Toujours ~13 %
+au-dessus du budget, mais **2,4× meilleur** que 250/600, et c'est la bonne base
+pour reprendre.
+
+Résolution vérifiée par simulation : `lpb 32/33 mfb 64/66 lim 100M/150M
+lambda 2.0352/2.0379`.
+
+#### 17.3 Piège : ne pas copier le défaut du script 560
+
+`factor_c169.sh:170` porte `RLIM=200M ALIM=450M`, justifié par
+« +8,8 % / +13,4 % / +15,1 % rel/s à q 2,2M / 12,5M / 22,4M vs 100M/150M ».
+**Ce commentaire optimise le rel/s, pas le temps total** : à FB 34,9 M il faut
+~1,01 G de relations, donc c'est plus lent de bout en bout. C'est exactement
+l'erreur qui a coûté le run du 31/10. Le défaut a donc été explicitement écrasé
+dans l'image 580 (§17.2).
+
+#### 17.4 Les mesures du 580 ont été faites hors profil de production
+
+Tous les runs du 580 sont passés par `modal_rsa580.py`, qui ne pose **pas**
+`CONTAINER=1`. Ils ont donc utilisé les défauts hors conteneur :
+`NCPU=24, SIEVE_T=20`. Le profil de production (`factor_c169.sh:48-90`) pose
+`NCPU=20, SIEVE_T=16, SIEVE_HOST_T=4, INC_PAR=3, PROBE_NT=12, DUP2_PAR=4,
+INC_TPG=3`, plus les réglages du contrôleur d'arrêt (`STOP_SHAPE=1
+STOP_NFAC=0.246 STOP_PROBE_TAX=6 STOP_PROBE_EVERY=2 FIRST_PROBE_AUTO=1`).
+
+Conséquence : nos débits sont ceux d'une chaîne **légèrement différente** de
+celle que le validateur exécuterait. L'écart est probablement faible (glas ne
+consomme que ~3,3 cœurs quel que soit `-t`, et nos sondes étaient rares), mais
+il n'a jamais été mesuré.
+
+#### 17.5 La piste sérieuse : un écart de débit de ~1,35× inexpliqué
+
+Le commentaire de `factor_c169.sh:73` documente une mesure de production :
+
+> « gpu/key1m.env, blind GCP key 31 at 32/33: **14 774 s wall, 485 M raw, N 16,8 M** »
+
+485 M de relations pour **14 774 s de bout en bout** (crible + filtrage + LA +
+sqrt). Si le crible occupe ~80 % de ce temps, cela implique **~40 000 rel/s**.
+
+Or notre mesure à `lim 100/150`, polynôme P (MurphyE 1,642e-10), donne
+**29 614 rel/s** sur la même bande (§13). Soit **~1,35× d'écart** — précisément
+l'ordre de grandeur qui manque au 580.
+
+Trois explications possibles, non départagées :
+
+1. **Le profil** : `CONTAINER=1` (SIEVE_T=16) vs nos `SIEVE_T=20` ;
+2. **Le polynôme** : la production 560 utilise `PS_BATCHES=3` + sopt/ropt, dont
+   le MurphyE n'est pas comparable à notre P (nous saturons à 1,7e-10 avec
+   `PS_ADAPT`, mais la production passe par ropt/sopt, un autre chemin) ;
+3. **L'instance** : « blind GCP key 31 » est un N aveugle, pas forcément le
+   challenge 560 lui-même.
+
+**Test qui tranche, et il est bon marché** : relancer le 580 à `lim 100/150`
+sous `CONTAINER=1`, polynôme P, et mesurer le débit sur la même bande de q.
+S'il monte de 29,6 k à ~38-40 k rel/s, c'est le profil. Sinon, c'est le
+polynôme ou l'instance.
+
+Enjeu : à 38 000 rel/s, `418 M / 38 000 = 11 000 s` de crible + 2 200 s de LA =
+**13 200 s → le 580 tient dans 14 400 s.** C'est la seule voie restante qui
+pourrait faire passer le palier, et elle ne demande aucun code nouveau.
+
+**Correction au §12** : l'« incohérence » signalée (17 339 s > 14 400 s) est
+levée. Le point 15 200 s + 2 139 s est une mesure ancienne ; la mesure de
+production plus récente donne **14 774 s wall**, soit 2,6 % au-dessus de la
+limite — donc le 560 était bien à portée, et notre chaîne l'est presque aussi.
+
+
 
 
 

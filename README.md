@@ -162,18 +162,18 @@ survivants — GLAS est un binaire Cognition patché, pas un projet refondable i
 
 ## 6. Pistes encore ouvertes (honnêtement)
 
-1. **Comprendre l'écart de 20 % avec la chaîne qui a résolu le 560.** C'est la
-   piste la plus rentable, mais **le code du 560 n'est pas public** : le dépôt
-   officiel `qbittensor-labs/breaking-rsa-solutions` s'arrête au **500 bits**
-   (« standing frontier ») et ne contient que 340/460/480/500. Les 512, 530 et
-   560 sont marqués Complete côté API mais leur source n'a pas été publiée. Ce
-   qui est publié montre une lignée cohérente : YAFU SIQS (340), puis un
-   cribleur CUDA maison `gpu_loop` en **Franke-Kleinjung 2D** (460→480→500).
-   Reste donc à chercher un write-up externe, pas du code.
+1. **Comprendre l'écart de débit de ~1,35× avec la chaîne 560 — et c'est
+   faisable en local.** `rsa560_solver/` est dans ce dépôt, et son commentaire
+   de production documente **14 774 s wall pour 485 M de relations** à
+   `lpb 32/33` (`factor_c169.sh:73`), soit ~40 000 rel/s. Notre mesure du 580 au
+   même `lim` donne 29 614 rel/s. Les deux pipelines sont quasi identiques
+   (1687 vs 1689 lignes), donc l'écart vient du **profil** (`CONTAINER=1` :
+   `SIEVE_T=16`, `NCPU=20`) ou du **polynôme** (la production passe par
+   ropt/sopt), pas du code. À 38 000 rel/s le 580 tiendrait en **13 200 s**.
+   Voir `HANDOFF.md` §17.5.
 2. **Vérifier si les chiffres c169 du commentaire de `factor_c169.sh` sont
-   périmés.** 15 200 s de crible + 2 139 s de LA = 17 339 s dépasse déjà la
-   limite annoncée : soit la limite réelle a changé, soit ce point de mesure
-   date d'un build plus lent.
+   périmés.** Résolu : la mesure de production récente est 14 774 s wall, pas
+   17 339 s (voir §17.5).
 3. **Un cribleur GPU qui gère la 3LP.** Aucun n'est disponible ici :
    `bench`/cuda-sieve a été retiré du Dockerfile le 2026-10-25 et sa source
    n'est plus vendored ; `las` (CPU) gère la 3LP mais tourne à 626 rel/s à

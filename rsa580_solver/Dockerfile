@@ -117,10 +117,25 @@ RUN pip3 install --no-cache-dir --break-system-packages \
 COPY --from=build /app /app
 # the stdout protocol (engine/enigma_challenges/solution_output.py, vendored from the validator SDK)
 COPY engine/enigma_challenges /app/engine/enigma_challenges
-# THE large-prime switch (factor_c169.sh CONTAINER=1 profile): 34 = lpb 32/34 with lambda1 2.08
-ENV RSA580_LPB1=34 RSA580_LPB0=32 RSA580_MFB1=68 RSA580_MFB0=64 RSA580_ALIM=600000000 RSA580_RLIM=250000000
+# THE large-prime switch (factor_c169.sh CONTAINER=1 profile).
+#
+# 2026-11-02 CORRECTION: this used to be `LPB1=34 MFB1=68 RLIM=250M ALIM=600M`, i.e. FB = pi(250M)+pi(600M)
+# ~= 45.2M columns. Measured at ~38,700 s end-to-end (JOURNAL_TENTATIVES.md 9, HANDOFF 9-10): 2.7x the 14,400 s
+# budget, because the relation count is proportional to the FB (raw ~= 29 * FB -> 1.31G relations) and the rate
+# gain from a bigger lim (+27% at best) does not come close to covering it. The image was therefore shipping the
+# worst known configuration.
+#
+# Now pinned to the 560-bit PRODUCTION set (rsa560_solver/pipeline_c169/README.md, measured 2026-10-17:
+# "lpb 32/33, mfb 63/65, lambda 2.1, ncurves 17/17, lim 100M/150M"), which is the best point our own 580 sweep
+# found too: FB 14.41M -> 418M raw, ~29.6k rel/s -> ~14,100 s sieving + ~2,200 s LA. Still ~13% over the budget,
+# but 2.4x better than 250/600, and the correct baseline for anyone resuming.
+#
+# NOTE the 560 script's own default (factor_c169.sh:170) is 200M/450M, justified by "+8.8..15.1% rel/s vs
+# 100M/150M". That optimises rel/s, not total time: at FB 34.9M it needs ~1.01G relations, so it is slower
+# end-to-end. Do not copy that default here.
+ENV RSA580_LPB1=33 RSA580_LPB0=32 RSA580_MFB1=66 RSA580_MFB0=64 RSA580_ALIM=150000000 RSA580_RLIM=100000000
 # Backward compatibility aliases
-ENV RSA560_LPB1=34 RSA560_LPB0=32
+ENV RSA560_LPB1=33 RSA560_LPB0=32
 # S2 (2026-10-25): the deadline telemetry (breaking_rsa.py) keeps its stage-coded status for an overtime run but fires at
 # 14385 s instead of 14330 s -- 15 s before the validator's own kill at 14400 s is all the margin the emit needs; a tooling
 # failure exits 3 (RunFailure) at once instead of holding. TELEMETRY=0 switches the watchdog off entirely.
